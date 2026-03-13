@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-0: 210 40% 98%;
+  --bg-1: 225 40% 92%;
+  --glass-bg: 255 255 255;
+  --glass-alpha: 0.55;
+  --glass-border: 255 255 255;
+  --glass-border-alpha: 0.28;
+  --fg: 222 47% 11%;
+  --muted-fg: 220 10% 40%;
+}
+
+.dark {
+  --bg-0: 219 53% 9%;
+  --bg-1: 223 38% 16%;
+  --glass-bg: 15 23 42;
+  --glass-alpha: 0.48;
+  --glass-border: 148 163 184;
+  --glass-border-alpha: 0.22;
+  --fg: 210 40% 98%;
+  --muted-fg: 215 20% 72%;
+}
+
+* {
+  @apply border-slate-200 dark:border-slate-700;
+}
+
+body {
+  font-family: 'SF Pro Display', 'SF Pro Text', ui-sans-serif, system-ui, sans-serif;
+  color: hsl(var(--fg));
+  background:
+    radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.18), transparent 30%),
+    radial-gradient(circle at 85% 0%, rgba(244, 114, 182, 0.16), transparent 32%),
+    linear-gradient(160deg, hsl(var(--bg-0)), hsl(var(--bg-1)));
+  min-height: 100vh;
+}
+
+.glass {
+  background: rgba(var(--glass-bg), var(--glass-alpha));
+  border: 1px solid rgba(var(--glass-border), var(--glass-border-alpha));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.noise-overlay {
+  position: relative;
+}
+
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 0.5px, transparent 0.5px);
+  background-size: 2px 2px;
+  border-radius: inherit;
+  opacity: 0.22;
+}
