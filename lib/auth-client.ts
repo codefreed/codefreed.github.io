@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getFirebaseAuthClient, getFirebaseClient } from '@/lib/firebase/client';
+import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -38,6 +39,7 @@ async function syncUserDoc(user: User) {
 }
 
 async function setSessionCookie(user: User) {
+  if (IS_STATIC_EXPORT) return;
   const idToken = await user.getIdToken();
   await fetch('/api/auth/session', {
     method: 'POST',
@@ -79,5 +81,6 @@ export async function logoutClient() {
   const client = getFirebaseAuthClient();
   if (!client) return;
   await signOut(client.auth);
+  if (IS_STATIC_EXPORT) return;
   await fetch('/api/auth/logout', { method: 'POST', keepalive: true });
 }

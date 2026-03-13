@@ -87,3 +87,11 @@ Note: CodedAI platform login/auth uses the shared `NEXT_PUBLIC_FIREBASE_*` env v
 
 - Use Export button in builder to download a zip project.
 - Deploy button can generate a one-click Vercel URL from your Git repository URL.
+
+## GitHub Pages
+
+This repo now includes a GitHub Pages workflow that publishes a static export of the UI.
+
+- GitHub Pages can host the landing page, login flow, Firebase-backed client features, preview, and local export.
+- GitHub Pages cannot run server routes, so AI requests and server-only OpenAI checks remain unavailable there.
+- For the full app, including `/api/ai`, deploy to Vercel or another Node-capable host.

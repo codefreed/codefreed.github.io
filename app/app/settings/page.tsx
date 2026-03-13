@@ -6,6 +6,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { Button } from '@/components/ui/button';
 import { useBuilderStore } from '@/lib/store/builder-store';
+import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
 export default function SettingsPage() {
   const [openAiConfigured, setOpenAiConfigured] = useState(false);
@@ -13,6 +14,11 @@ export default function SettingsPage() {
   const { resetProject } = useBuilderStore();
 
   useEffect(() => {
+    if (IS_STATIC_EXPORT) {
+      setOpenAiConfigured(false);
+      return;
+    }
+
     fetch('/api/env-status')
       .then((res) => res.json())
       .then((data) => setOpenAiConfigured(data.openaiConfigured))
@@ -20,6 +26,11 @@ export default function SettingsPage() {
   }, []);
 
   const runTest = async () => {
+    if (IS_STATIC_EXPORT) {
+      toast.error('AI test is unavailable on GitHub Pages. Deploy to Vercel for server-backed AI routes.');
+      return;
+    }
+
     try {
       const response = await fetch('/api/test-ai', { method: 'POST' });
       const data = await response.json();
@@ -42,14 +53,23 @@ export default function SettingsPage() {
           <div className="glass rounded-2xl p-4">
             <p className="text-sm font-medium">OpenAI API Key Status</p>
             <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-              {openAiConfigured ? 'OpenAI key configured.' : 'Missing OPENAI_API_KEY.'}
+              {IS_STATIC_EXPORT
+                ? 'GitHub Pages cannot expose server-only OpenAI keys.'
+                : openAiConfigured
+                  ? 'OpenAI key configured.'
+                  : 'Missing OPENAI_API_KEY.'}
             </p>
-            {!openAiConfigured ? (
+            {!openAiConfigured && !IS_STATIC_EXPORT ? (
               <div className="mt-3 rounded-xl bg-amber-500/20 p-3 text-xs text-amber-200">
                 Add `OPENAI_API_KEY` to `.env.local`, then restart `npm run dev`. On hosted deployments, add this in project env vars.
               </div>
             ) : null}
-            <Button className="mt-3" onClick={runTest}>
+            {IS_STATIC_EXPORT ? (
+              <div className="mt-3 rounded-xl bg-amber-500/20 p-3 text-xs text-amber-100">
+                This static GitHub Pages build includes the UI, but AI routes only work on a server deployment such as Vercel.
+              </div>
+            ) : null}
+            <Button className="mt-3" onClick={runTest} disabled={IS_STATIC_EXPORT}>
               Test AI
             </Button>
             {testResult ? <p className="mt-2 text-xs text-emerald-300">{testResult}</p> : null}

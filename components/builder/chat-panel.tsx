@@ -9,6 +9,7 @@ import { GlassPanel } from '@/components/ui/glass-panel';
 import { useBuilderStore } from '@/lib/store/builder-store';
 import { saveChatMessage, saveVersion } from '@/lib/project-service';
 import type { AiResponsePayload } from '@/lib/ai/schema';
+import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
 const AI_TIMEOUT_MS = 285_000;
 const AI_TIMEOUT_SECONDS = Math.round(AI_TIMEOUT_MS / 1000);
@@ -78,6 +79,10 @@ export function ChatPanel({ projectId }: { projectId: string }) {
   const send = async (overrideInstruction?: string, errorContext?: string) => {
     const instruction = (overrideInstruction ?? input).trim();
     if (!instruction) return;
+    if (IS_STATIC_EXPORT) {
+      toast.error('AI editing is unavailable on GitHub Pages. Deploy this app to Vercel to enable server-backed AI.');
+      return;
+    }
 
     try {
       setBusy(true);
@@ -203,10 +208,12 @@ export function ChatPanel({ projectId }: { projectId: string }) {
           onChange={(e) => setInput(e.target.value)}
         />
         <p className="text-xs text-slate-600 dark:text-slate-300">
-          You only need to describe what you want. The AI will decide when to add components, styles, and interactions.
+          {IS_STATIC_EXPORT
+            ? 'This GitHub Pages build keeps preview and Firebase flows, but AI editing needs a server deployment such as Vercel.'
+            : 'You only need to describe what you want. The AI will decide when to add components, styles, and interactions.'}
         </p>
         <Button className="w-full" onClick={() => send()} disabled={busy || !input.trim()}>
-          {busy ? 'Generating...' : 'Send'}
+          {busy ? 'Generating...' : IS_STATIC_EXPORT ? 'AI Unavailable on Pages' : 'Send'}
         </Button>
       </div>
     </GlassPanel>
@@ -214,6 +221,10 @@ export function ChatPanel({ projectId }: { projectId: string }) {
 }
 
 export async function fixPreviewWithAi(projectId: string, files: Record<string, string>, error: string) {
+  if (IS_STATIC_EXPORT) {
+    throw new Error('Fix with AI is unavailable on GitHub Pages. Deploy to Vercel to use AI routes.');
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
   try {
