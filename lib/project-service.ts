@@ -26,7 +26,7 @@ export interface ProjectBundle {
 
 const LS_KEY = 'codedai-projects';
 const LOCAL_PROJECT_ID = 'local-project';
-const FIRESTORE_TIMEOUT_MS = 15_000;
+const FIRESTORE_TIMEOUT_MS = 45_000;
 const WRITE_BATCH_LIMIT = 400;
 
 function withFirestoreTimeout<T>(promise: Promise<T>, label: string, timeoutMs = FIRESTORE_TIMEOUT_MS) {
@@ -216,63 +216,68 @@ export async function saveProjectBundle(params: {
   };
 
   const projectDocRef = doc(client.db, 'projects', projectId);
-  if (creatingProject) {
-    await withFirestoreTimeout(
-      setDoc(
-        projectDocRef,
-        {
-          ownerId: params.ownerId,
-          name: projectName,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          currentVersionId: currentVersion?.id ?? null
-        },
-        { merge: true }
-      ),
-      'Creating Firebase project'
-    );
+  try {
+    if (creatingProject) {
+      await withFirestoreTimeout(
+        setDoc(
+          projectDocRef,
+          {
+            ownerId: params.ownerId,
+            name: projectName,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            currentVersionId: currentVersion?.id ?? null
+          },
+          { merge: true }
+        ),
+        'Creating Firebase project'
+      );
+    }
+
+    const operations: Array<(batch: ReturnType<typeof writeBatch>) => void> = [];
+
+    if (!creatingProject) {
+      operations.push((batch) =>
+        batch.set(
+          projectDocRef,
+          {
+            ownerId: params.ownerId,
+            name: projectName,
+            updatedAt: serverTimestamp(),
+            currentVersionId: currentVersion?.id ?? null
+          },
+          { merge: true }
+        )
+      );
+    }
+
+    for (const version of bundle.versions) {
+      operations.push((batch) =>
+        batch.set(doc(client.db, 'projects', projectId, 'versions', version.id), {
+          createdAt: version.createdAt,
+          commitMessage: version.commitMessage,
+          files: version.files
+        })
+      );
+    }
+
+    for (const message of bundle.messages) {
+      operations.push((batch) =>
+        batch.set(doc(client.db, 'projects', projectId, 'chats', 'main', 'messages', message.id), {
+          role: message.role,
+          content: message.content,
+          createdAt: message.createdAt,
+          versionIdApplied: message.versionIdApplied ?? null,
+          diffSummary: message.diffSummary ?? []
+        })
+      );
+    }
+
+    await commitWriteOperations(client.db, operations, 'Saving project to Firebase');
+  } catch {
+    // Match the rest of the project persistence flow: keep working locally
+    // when Firestore is slow or temporarily unavailable.
   }
-
-  const operations: Array<(batch: ReturnType<typeof writeBatch>) => void> = [];
-
-  if (!creatingProject) {
-    operations.push((batch) =>
-      batch.set(
-        projectDocRef,
-        {
-          ownerId: params.ownerId,
-          name: projectName,
-          updatedAt: serverTimestamp(),
-          currentVersionId: currentVersion?.id ?? null
-        },
-        { merge: true }
-      )
-    );
-  }
-
-  for (const version of bundle.versions) {
-    operations.push((batch) =>
-      batch.set(doc(client.db, 'projects', projectId, 'versions', version.id), {
-        createdAt: version.createdAt,
-        commitMessage: version.commitMessage,
-        files: version.files
-      })
-    );
-  }
-
-  for (const message of bundle.messages) {
-    operations.push((batch) =>
-      batch.set(doc(client.db, 'projects', projectId, 'chats', 'main', 'messages', message.id), {
-        role: message.role,
-        content: message.content,
-        createdAt: message.createdAt,
-        versionIdApplied: message.versionIdApplied ?? null,
-        diffSummary: message.diffSummary ?? []
-      })
-    );
-  }
-
-  await commitWriteOperations(client.db, operations, 'Saving project to Firebase');
 
   upsertLocalBundle(bundle);
   return bundle;
