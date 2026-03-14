@@ -16,6 +16,10 @@ interface BuilderState {
   lastSavedAt?: number;
   setProjectName: (name: string) => void;
   setSelectedModel: (model: AiModel) => void;
+  replaceProjectContents: (params: {
+    projectName?: string;
+    files: FileTree;
+  }) => void;
   loadProject: (params: {
     projectId: string;
     projectName: string;
@@ -270,6 +274,22 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   isSaving: false,
   setProjectName: (name) => set({ projectName: name }),
   setSelectedModel: (model) => set({ selectedModel: model }),
+  replaceProjectContents: ({ projectName, files }) => {
+    const version: VersionSnapshot = {
+      id: uuid(),
+      createdAt: Date.now(),
+      commitMessage: 'Imported project',
+      files
+    };
+
+    set((state) => ({
+      projectName: projectName ?? state.projectName,
+      files,
+      versions: [version],
+      messages: [],
+      lastSavedAt: undefined
+    }));
+  },
   loadProject: ({ projectId, projectName, files, versions, messages }) => {
     set({ projectId, projectName, files, versions, messages });
   },

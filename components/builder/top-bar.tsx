@@ -1,15 +1,17 @@
 'use client';
 
-import { Undo2, Redo2, Download, Rocket, Save } from 'lucide-react';
+import { Undo2, Redo2, Download, FolderUp, Rocket, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useBuilderStore } from '@/lib/store/builder-store';
 
 export function TopBar({
+  onImport,
   onExport,
   onDeploy,
   onSave
 }: {
+  onImport: () => void;
   onExport: () => Promise<void>;
   onDeploy: () => Promise<void>;
   onSave: () => Promise<void>;
@@ -34,6 +36,9 @@ export function TopBar({
         </Button>
         <Button variant="ghost" size="sm">
           <Redo2 className="mr-1 h-4 w-4" /> Redo
+        </Button>
+        <Button variant="secondary" size="sm" onClick={onImport}>
+          <FolderUp className="mr-1 h-4 w-4" /> Import
         </Button>
         <Button variant="secondary" size="sm" onClick={onExport}>
           <Download className="mr-1 h-4 w-4" /> Export

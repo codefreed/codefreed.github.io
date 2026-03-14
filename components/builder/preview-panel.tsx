@@ -134,6 +134,56 @@ export default function Script({ strategy, ...props }: ScriptProps) {
 }
 `;
 
+const previewCnShim = `export function cn(...inputs) {
+  return inputs.filter(Boolean).join(' ');
+}
+`;
+
+const previewButtonShim = `import React from 'react';
+import { cn } from '../../lib/utils/cn';
+
+export function Button({ className, children, ...props }) {
+  return (
+    <button
+      className={cn(
+        'inline-flex items-center justify-center whitespace-nowrap rounded-2xl px-4 py-2 text-sm font-medium transition-all',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+`;
+
+const previewGlassPanelShim = `import React from 'react';
+import { cn } from '../../lib/utils/cn';
+
+export function GlassPanel({ className, children }) {
+  return (
+    <section className={cn('glass noise-overlay rounded-3xl p-4', className)}>
+      {children}
+    </section>
+  );
+}
+`;
+
+const previewThemeToggleShim = `import React from 'react';
+
+export function ThemeToggle() {
+  return (
+    <button
+      type="button"
+      className="glass inline-flex h-10 items-center justify-center rounded-2xl px-4 py-2 text-sm font-medium text-slate-900 dark:text-slate-100"
+      onClick={() => document.documentElement.classList.toggle('dark')}
+    >
+      Theme
+    </button>
+  );
+}
+`;
+
 function ensureRelativeImport(value: string) {
   return value.startsWith('.') ? value : `./${value}`;
 }
@@ -221,197 +271,17 @@ function sanitizePreviewCss(content: string) {
     .trim();
 }
 
-const PREVIEW_EXTERNAL_IMPORTS: Record<string, string> = {
-  react: 'https://esm.sh/react@18.2.0',
-  'react-dom/client': 'https://esm.sh/react-dom@18.2.0/client',
-  'react/jsx-runtime': 'https://esm.sh/react@18.2.0/jsx-runtime',
-  'react/jsx-dev-runtime': 'https://esm.sh/react@18.2.0/jsx-dev-runtime',
-  'lucide-react': 'https://esm.sh/lucide-react@0.468.0',
-  clsx: 'https://esm.sh/clsx@2.1.1',
-  'tailwind-merge': 'https://esm.sh/tailwind-merge@2.6.0'
-};
-
-function normalizePreviewFiles(files: FileTree) {
-  return new Map<string, string>(
-    Object.entries(files).map(([filePath, content]) => [filePath.startsWith('/') ? filePath : `/${filePath}`, content])
-  );
-}
-
-function resolvePreviewFile(specifier: string, sourcePath: string, files: Map<string, string>) {
-  const nextShims: Record<string, string> = {
-    'next/link': '/lib/preview/next-link.tsx',
-    'next/image': '/lib/preview/next-image.tsx',
-    'next/script': '/lib/preview/next-script.tsx'
-  };
-
-  if (specifier in nextShims) {
-    return nextShims[specifier];
-  }
-
-  const sourceDir = dirname(sourcePath);
-  const basePath = specifier.startsWith('@/') ? `/${specifier.slice(2)}` : specifier.startsWith('.') ? joinPath(sourceDir, specifier) : specifier;
-  const candidates = [
-    basePath,
-    `${basePath}.ts`,
-    `${basePath}.tsx`,
-    `${basePath}.js`,
-    `${basePath}.jsx`,
-    `${basePath}.css`,
-    joinPath(basePath, 'index.ts'),
-    joinPath(basePath, 'index.tsx'),
-    joinPath(basePath, 'index.js'),
-    joinPath(basePath, 'index.jsx')
-  ];
-
-  return candidates.find((candidate) => files.has(candidate)) ?? null;
-}
-
-function createCssInjectionModule(filePath: string, source: string) {
-  const styleId = `codedai-preview-${filePath.replace(/[^a-z0-9_-]/gi, '-')}`;
-  return `const css = ${JSON.stringify(sanitizePreviewCss(source))};
-if (!document.getElementById(${JSON.stringify(styleId)})) {
-  const style = document.createElement('style');
-  style.id = ${JSON.stringify(styleId)};
-  style.textContent = css;
-  document.head.appendChild(style);
-}
-export default css;
-`;
-}
-
-async function createLocalPreviewDocument(files: FileTree) {
-  const ts = await import('typescript');
-  const runtimeFiles = normalizePreviewFiles(files);
-  runtimeFiles.set('/lib/preview/next-link.tsx', previewLinkShim);
-  runtimeFiles.set('/lib/preview/next-image.tsx', previewImageShim);
-  runtimeFiles.set('/lib/preview/next-script.tsx', previewScriptShim);
-
-  const blobUrls = new Map<string, string>();
-
-  const compileModule = (filePath: string): string => {
-    const cached = blobUrls.get(filePath);
-    if (cached) return cached;
-
-    const source = runtimeFiles.get(filePath);
-    if (source == null) {
-      throw new Error(`Missing preview module: ${filePath}`);
-    }
-
-    const output =
-      extension(filePath) === '.css'
-        ? createCssInjectionModule(filePath, source)
-        : ts.transpileModule(source, {
-            compilerOptions: {
-              jsx: ts.JsxEmit.ReactJSX,
-              module: ts.ModuleKind.ESNext,
-              target: ts.ScriptTarget.ES2020
-            },
-            fileName: filePath
-          }).outputText;
-
-    const rewritten = output
-      .replace(/(from\s*['"])([^'"]+)(['"])/g, (_match, start: string, specifier: string, end: string) => {
-        const localFile = resolvePreviewFile(specifier, filePath, runtimeFiles);
-        const resolved = localFile ? compileModule(localFile) : PREVIEW_EXTERNAL_IMPORTS[specifier] ?? `https://esm.sh/${specifier}`;
-        return `${start}${resolved}${end}`;
-      })
-      .replace(/(import\s*\(\s*['"])([^'"]+)(['"]\s*\))/g, (_match, start: string, specifier: string, end: string) => {
-        const localFile = resolvePreviewFile(specifier, filePath, runtimeFiles);
-        const resolved = localFile ? compileModule(localFile) : PREVIEW_EXTERNAL_IMPORTS[specifier] ?? `https://esm.sh/${specifier}`;
-        return `${start}${resolved}${end}`;
-      });
-
-    const url = URL.createObjectURL(new Blob([rewritten], { type: 'text/javascript' }));
-    blobUrls.set(filePath, url);
-    return url;
-  };
-
-  const pageModule = resolvePreviewFile('./app/page', '/index.tsx', runtimeFiles) ?? '/app/page.tsx';
-  const layoutModule = resolvePreviewFile('./app/layout', '/index.tsx', runtimeFiles);
-  const pageModuleUrl = compileModule(pageModule);
-  const layoutImportLine = layoutModule ? `import RootLayout from '${compileModule(layoutModule)}';` : '';
-  const entryModule = `import React from '${PREVIEW_EXTERNAL_IMPORTS.react}';
-import { createRoot } from '${PREVIEW_EXTERNAL_IMPORTS['react-dom/client']}';
-import Page from '${pageModuleUrl}';
-${layoutImportLine}
-
-document.documentElement.classList.add('dark');
-function unwrapLayout(node) {
-  if (!React.isValidElement(node)) return node;
-
-  const typeName = typeof node.type === 'string' ? node.type.toLowerCase() : '';
-  if (typeName === 'html' || typeName === 'head') {
-    return React.createElement(React.Fragment, null, React.Children.map(node.props.children, unwrapLayout));
-  }
-  if (typeName === 'body') {
-    return React.createElement(React.Fragment, null, React.Children.map(node.props.children, unwrapLayout));
-  }
-
-  if (!node.props || !node.props.children) {
-    return node;
-  }
-
-  return React.cloneElement(
-    node,
-    node.props,
-    React.Children.map(node.props.children, unwrapLayout)
-  );
-}
-
-const pageElement = React.createElement(Page);
-const appElement =
-  typeof RootLayout === 'function'
-    ? unwrapLayout(React.createElement(RootLayout, null, pageElement))
-    : pageElement;
-
-createRoot(document.getElementById('root')).render(appElement);
-`;
-  const entryUrl = URL.createObjectURL(new Blob([entryModule], { type: 'text/javascript' }));
-  const cssText = sanitizePreviewCss(runtimeFiles.get('/app/globals.css') ?? fallbackStyles) || fallbackStyles;
-
-  return {
-    html: `<!doctype html>
-<html lang="en" class="dark">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>${cssText}</style>
-    <script>
-      window.addEventListener('error', function (event) {
-        parent.postMessage({ type: 'codedai-preview-error', message: event.message }, '*');
-      });
-      window.addEventListener('unhandledrejection', function (event) {
-        const reason = event.reason;
-        parent.postMessage(
-          { type: 'codedai-preview-error', message: reason && reason.message ? reason.message : String(reason) },
-          '*'
-        );
-      });
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="${entryUrl}"></script>
-  </body>
-</html>`,
-    revoke() {
-      URL.revokeObjectURL(entryUrl);
-      blobUrls.forEach((url) => URL.revokeObjectURL(url));
-    }
-  };
-}
-
 function sortFilePaths(files: FileTree) {
   return Object.keys(files).sort((a, b) => {
-    const priority = (path: string) => {
-      if (path === 'app/page.tsx') return 0;
-      if (path === 'app/layout.tsx') return 1;
-      if (path === 'app/globals.css') return 2;
-      if (path.endsWith('.css')) return 3;
-      if (path.endsWith('.tsx')) return 4;
-      if (path.endsWith('.ts')) return 5;
-      if (path.endsWith('.jsx')) return 6;
-      if (path.endsWith('.js')) return 7;
+    const priority = (filePath: string) => {
+      if (filePath === 'app/page.tsx') return 0;
+      if (filePath === 'app/layout.tsx') return 1;
+      if (filePath === 'app/globals.css') return 2;
+      if (filePath.endsWith('.css')) return 3;
+      if (filePath.endsWith('.tsx')) return 4;
+      if (filePath.endsWith('.ts')) return 5;
+      if (filePath.endsWith('.jsx')) return 6;
+      if (filePath.endsWith('.js')) return 7;
       return 8;
     };
 
@@ -442,8 +312,15 @@ function detectPreviewIssues(files: FileTree) {
 
 function mapFilesForSandpack(files: FileTree): SandpackFiles {
   const knownFiles = new Set(Object.keys(files));
+  const wrappedAppCode = `import Page from './app/page';
+
+export default function App() {
+  return <Page />;
+}
+`;
+
   const sandpackFiles: SandpackFiles = {
-    '/index.js': {
+    '/index.tsx': {
       code: `import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
@@ -453,16 +330,10 @@ createRoot(document.getElementById('root')).render(<App />);
 `
     },
     '/styles.css': {
-      code:
-        sanitizePreviewCss(files['app/globals.css'] ?? fallbackStyles) || fallbackStyles
+      code: sanitizePreviewCss(files['app/globals.css'] ?? fallbackStyles) || fallbackStyles
     },
     '/App.tsx': {
-      code: `import Page from './app/page';
-
-export default function App(){
-  return <Page />;
-}
-`
+      code: wrappedAppCode
     },
     '/lib/preview/next-link.tsx': {
       code: previewLinkShim
@@ -473,24 +344,52 @@ export default function App(){
     '/lib/preview/next-script.tsx': {
       code: previewScriptShim
     },
+    '/lib/utils/cn.ts': {
+      code: previewCnShim
+    },
+    '/components/ui/button.tsx': {
+      code: previewButtonShim
+    },
+    '/components/ui/glass-panel.tsx': {
+      code: previewGlassPanelShim
+    },
+    '/components/ui/theme-toggle.tsx': {
+      code: previewThemeToggleShim
+    },
     '/app/page.tsx': {
       code:
         rewritePreviewImports(
           '/app/page.tsx',
           files['app/page.tsx'] ??
-        `export default function Page(){return <main style={{padding:24}}>No page generated yet.</main>;}`
-        ,
+            `export default function Page(){return <main style={{padding:24}}>No page generated yet.</main>;}`,
           knownFiles
         )
     }
   };
 
-  for (const [path, content] of Object.entries(files)) {
-    if (path === 'app/page.tsx' || path === 'app/globals.css') continue;
-    sandpackFiles[`/${path}`] = { code: rewritePreviewImports(`/${path}`, content, knownFiles) };
+  for (const [filePath, content] of Object.entries(files)) {
+    if (
+      filePath === 'app/page.tsx' ||
+      filePath === 'app/globals.css' ||
+      filePath === 'app/layout.tsx' ||
+      filePath === 'components/ui/button.tsx' ||
+      filePath === 'components/ui/glass-panel.tsx' ||
+      filePath === 'components/ui/theme-toggle.tsx' ||
+      filePath === 'lib/utils/cn.ts'
+    ) {
+      continue;
+    }
+    sandpackFiles[`/${filePath}`] = { code: rewritePreviewImports(`/${filePath}`, content, knownFiles) };
   }
 
   return sandpackFiles;
+}
+
+function createPreviewFingerprint(files: FileTree) {
+  return Object.entries(files)
+    .sort(([leftPath], [rightPath]) => leftPath.localeCompare(rightPath))
+    .map(([filePath, content]) => `${filePath}:${content.length}:${content.slice(0, 120)}`)
+    .join('|');
 }
 
 export function PreviewPanel({
@@ -501,6 +400,7 @@ export function PreviewPanel({
   onFixWithAi: (error: string) => void;
 }) {
   const sandpackFiles = useMemo(() => mapFilesForSandpack(files), [files]);
+  const previewFingerprint = useMemo(() => createPreviewFingerprint(files), [files]);
   const filePaths = useMemo(() => sortFilePaths(files), [files]);
   const previewIssue = useMemo(() => detectPreviewIssues(files), [files]);
   const [ideOpen, setIdeOpen] = useState(false);
@@ -527,7 +427,7 @@ export function PreviewPanel({
       : viewport === 'tablet'
         ? 'mx-auto w-full max-w-[820px]'
         : 'w-full';
-  const filteredFilePaths = filePaths.filter((path) => path.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredFilePaths = filePaths.filter((filePath) => filePath.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const openPreviewInNewTab = () => {
     const client = previewRef.current?.getClient();
@@ -544,6 +444,12 @@ export function PreviewPanel({
       return;
     }
 
+    const previewMarkup = iframe.contentDocument?.documentElement?.outerHTML;
+    if (!previewMarkup) {
+      toast.error('Could not open preview in a new tab');
+      return;
+    }
+
     const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
     if (!previewWindow) {
       toast.error('Pop-up blocked while opening preview');
@@ -551,7 +457,7 @@ export function PreviewPanel({
     }
 
     previewWindow.document.open();
-    previewWindow.document.write(`<!doctype html>${iframe.contentDocument?.documentElement?.outerHTML ?? ''}`);
+    previewWindow.document.write(`<!doctype html>${previewMarkup}`);
     previewWindow.document.close();
   };
 
@@ -572,11 +478,7 @@ export function PreviewPanel({
                   <TabsTrigger value="desktop">Desktop</TabsTrigger>
                 </TabsList>
               </Tabs>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={openPreviewInNewTab}
-              >
+              <Button size="sm" variant="secondary" onClick={openPreviewInNewTab}>
                 <ExternalLink className="mr-1 h-4 w-4" /> New Tab
               </Button>
               <Button size="sm" onClick={() => setIdeOpen(true)}>
@@ -619,15 +521,15 @@ export function PreviewPanel({
                   </div>
                 </div>
                 <SandpackProvider
+                  key={previewFingerprint}
                   template="react-ts"
                   files={sandpackFiles}
                   customSetup={{
+                    entry: '/index.tsx',
                     dependencies: {
-                      clsx: '^2.1.1',
                       'lucide-react': '^0.468.0',
                       react: '^18.2.0',
-                      'react-dom': '^18.2.0',
-                      'tailwind-merge': '^2.6.0'
+                      'react-dom': '^18.2.0'
                     }
                   }}
                 >
@@ -646,11 +548,7 @@ export function PreviewPanel({
             </div>
           </div>
 
-          <Button
-            className="mt-4 w-full"
-            variant="secondary"
-            onClick={() => onFixWithAi('Preview compile/runtime issue from sandbox')}
-          >
+          <Button className="mt-4 w-full" variant="secondary" onClick={() => onFixWithAi('Preview compile/runtime issue from sandbox')}>
             Fix with AI
           </Button>
         </div>
@@ -700,22 +598,22 @@ export function PreviewPanel({
                         placeholder="Search files..."
                         className="w-full rounded-md border border-white/10 bg-[#1f1f1f] px-3 py-2 text-sm text-white outline-none"
                       />
-                      {filteredFilePaths.map((path) => (
+                      {filteredFilePaths.map((filePath) => (
                         <button
-                          key={path}
+                          key={filePath}
                           className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition ${
-                            path === selectedFile
+                            filePath === selectedFile
                               ? 'bg-[#37373d] text-white'
                               : 'text-slate-300 hover:bg-[#2a2d2e] hover:text-white'
                           }`}
                           onClick={() => {
-                            setSelectedFile(path);
+                            setSelectedFile(filePath);
                             setIdePane('explorer');
                           }}
                           type="button"
                         >
                           <FileCode2 className="h-4 w-4 shrink-0 text-sky-300" />
-                          <span className="truncate">{path}</span>
+                          <span className="truncate">{filePath}</span>
                         </button>
                       ))}
                     </div>
@@ -724,28 +622,26 @@ export function PreviewPanel({
                       Open a live preview beside the editor while keeping the file tree available.
                     </div>
                   ) : (
-                    filePaths.map((path) => (
+                    filePaths.map((filePath) => (
                       <button
-                        key={path}
+                        key={filePath}
                         className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition ${
-                          path === selectedFile
+                          filePath === selectedFile
                             ? 'bg-[#37373d] text-white'
                             : 'text-slate-300 hover:bg-[#2a2d2e] hover:text-white'
                         }`}
-                        onClick={() => setSelectedFile(path)}
+                        onClick={() => setSelectedFile(filePath)}
                         type="button"
                       >
                         <FileCode2 className="h-4 w-4 shrink-0 text-sky-300" />
-                        <span className="truncate">{path}</span>
+                        <span className="truncate">{filePath}</span>
                       </button>
                     ))
                   )}
                 </div>
               </div>
 
-              <div
-                className={`grid min-h-0 bg-[#1e1e1e] ${idePane === 'preview' ? 'grid-rows-[auto_1fr_auto]' : 'grid-rows-[auto_1fr_auto]'}`}
-              >
+              <div className="grid min-h-0 grid-rows-[auto_1fr_auto] bg-[#1e1e1e]">
                 <div className="flex items-center justify-between border-b border-white/10 bg-[#252526] px-4 py-2">
                   <div className="flex items-center gap-3 text-sm text-slate-200">
                     <FileCode2 className="h-4 w-4 text-sky-300" />
@@ -778,6 +674,7 @@ export function PreviewPanel({
                   {idePane === 'preview' ? (
                     <div className="min-h-0 overflow-hidden bg-[#11182b]">
                       <Sandpack
+                        key={previewFingerprint}
                         template="react-ts"
                         files={sandpackFiles}
                         options={{
@@ -788,7 +685,9 @@ export function PreviewPanel({
                           editorHeight: 900
                         }}
                         customSetup={{
+                          entry: '/index.tsx',
                           dependencies: {
+                            'lucide-react': '^0.468.0',
                             react: '^18.2.0',
                             'react-dom': '^18.2.0'
                           }

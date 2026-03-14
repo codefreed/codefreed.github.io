@@ -39,6 +39,7 @@ cp .env.example .env.local
 
 - Required for AI:
   - `OPENAI_API_KEY`
+  - `GEMINI_API_KEY`
 - Required for Firebase client auth/storage/db:
   - `NEXT_PUBLIC_FIREBASE_API_KEY`
   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
@@ -79,7 +80,7 @@ Note: CodedAI platform login/auth uses the shared `NEXT_PUBLIC_FIREBASE_*` env v
 
 ## Security Notes
 
-- OpenAI key is server-only (`OPENAI_API_KEY`), never stored in Firestore by default.
+- AI provider keys are server-only (`OPENAI_API_KEY`, `GEMINI_API_KEY`), never stored in Firestore by default.
 - `/api/ai` executes all AI calls server-side.
 - Session cookie is set server-side. If Firebase Admin credentials are provided, ID token verification is enforced.
 

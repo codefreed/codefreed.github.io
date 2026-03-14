@@ -12,14 +12,158 @@ import { saveProjectBundle } from '@/lib/project-service';
 import { useBuilderStore } from '@/lib/store/builder-store';
 import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
+const TEXT_FILE_EXTENSIONS = new Set([
+  '.css',
+  '.csv',
+  '.html',
+  '.js',
+  '.json',
+  '.jsx',
+  '.md',
+  '.mjs',
+  '.svg',
+  '.ts',
+  '.tsx',
+  '.txt',
+  '.xml',
+  '.yml',
+  '.yaml'
+]);
+
+function normalizeImportedPath(filePath: string) {
+  return filePath.replace(/^\/+/, '').replace(/\\/g, '/');
+}
+
+function extension(filePath: string) {
+  const normalized = normalizeImportedPath(filePath);
+  const fileName = normalized.split('/').pop() ?? '';
+  const index = fileName.lastIndexOf('.');
+  return index === -1 ? '' : fileName.slice(index).toLowerCase();
+}
+
+function isTextWebsiteFile(filePath: string) {
+  const normalized = normalizeImportedPath(filePath);
+  const fileName = normalized.split('/').pop() ?? '';
+
+  if (!fileName || fileName.startsWith('.DS_Store')) {
+    return false;
+  }
+
+  if (!fileName.includes('.')) {
+    return ['dockerfile', 'license', 'readme', 'makefile'].includes(fileName.toLowerCase());
+  }
+
+  return TEXT_FILE_EXTENSIONS.has(extension(filePath));
+}
+
+function inferProjectName(fileName: string) {
+  return fileName.replace(/\.(zip)$/i, '').trim() || 'Imported Project';
+}
+
 export default function BuilderPage() {
   const splitHandleRef = useRef<HTMLDivElement | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
+  const zipInputRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
-  const { projectId, projectName, files, versions, messages, loadProject, setSaving, markSaved } =
+  const { projectId, projectName, files, versions, messages, loadProject, replaceProjectContents, setSaving, markSaved } =
     useBuilderStore();
   const [mounted, setMounted] = useState(false);
   const [chatWidth, setChatWidth] = useState(540);
   const [resizing, setResizing] = useState(false);
+
+  const importFileTree = (nextFiles: Record<string, string>, importedName?: string) => {
+    if (!Object.keys(nextFiles).length) {
+      toast.error('No supported website files were found to import');
+      return;
+    }
+
+    replaceProjectContents({
+      projectName: importedName || projectName,
+      files: nextFiles
+    });
+    toast.success(`Imported ${Object.keys(nextFiles).length} file${Object.keys(nextFiles).length === 1 ? '' : 's'}`);
+  };
+
+  const importFolder = async (selectedFiles: FileList | null) => {
+    if (!selectedFiles?.length) {
+      return;
+    }
+
+    const nextFiles: Record<string, string> = {};
+    let skipped = 0;
+
+    await Promise.all(
+      Array.from(selectedFiles).map(async (file) => {
+        const relativePath = normalizeImportedPath((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name);
+        if (!isTextWebsiteFile(relativePath)) {
+          skipped += 1;
+          return;
+        }
+
+        nextFiles[relativePath] = await file.text();
+      })
+    );
+
+    const importedRoot = normalizeImportedPath((selectedFiles[0] as File & { webkitRelativePath?: string }).webkitRelativePath || '');
+    const folderName = importedRoot.split('/')[0] || 'Imported Project';
+    importFileTree(nextFiles, folderName);
+
+    if (skipped) {
+      toast.message(`Skipped ${skipped} unsupported file${skipped === 1 ? '' : 's'}`);
+    }
+  };
+
+  const importZip = async (selectedFile: File | null) => {
+    if (!selectedFile) {
+      return;
+    }
+
+    const zip = await JSZip.loadAsync(selectedFile);
+    const nextFiles: Record<string, string> = {};
+    let skipped = 0;
+
+    await Promise.all(
+      Object.values(zip.files).map(async (entry) => {
+        if (entry.dir) {
+          return;
+        }
+
+        const filePath = normalizeImportedPath(entry.name);
+        if (!isTextWebsiteFile(filePath)) {
+          skipped += 1;
+          return;
+        }
+
+        nextFiles[filePath] = await entry.async('string');
+      })
+    );
+
+    importFileTree(nextFiles, inferProjectName(selectedFile.name));
+
+    if (skipped) {
+      toast.message(`Skipped ${skipped} unsupported file${skipped === 1 ? '' : 's'} from the zip`);
+    }
+  };
+
+  const openImportPicker = () => {
+    const selection = window.prompt('Type "folder" to import a website folder or "zip" to import a .zip file.');
+    if (!selection) {
+      return;
+    }
+
+    const normalized = selection.trim().toLowerCase();
+    if (normalized === 'folder') {
+      folderInputRef.current?.click();
+      return;
+    }
+
+    if (normalized === 'zip') {
+      zipInputRef.current?.click();
+      return;
+    }
+
+    toast.error('Type "folder" or "zip" to choose an import type');
+  };
 
   const exportProject = async () => {
     const currentFiles = useBuilderStore.getState().files;
@@ -81,6 +225,7 @@ export default function BuilderPage() {
 
     const requiredEnvKeys = [
       'OPENAI_API_KEY',
+      'GEMINI_API_KEY',
       'NEXT_PUBLIC_FIREBASE_API_KEY',
       'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
       'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
@@ -164,7 +309,30 @@ export default function BuilderPage() {
   return (
     <AppShell contentClassName="grid min-h-0 grid-rows-[auto_1fr] gap-4">
       <>
+        <input
+          ref={folderInputRef}
+          className="hidden"
+          type="file"
+          multiple
+          // @ts-expect-error webkitdirectory is not in the React type definitions.
+          webkitdirectory=""
+          onChange={(event) => {
+            void importFolder(event.target.files);
+            event.target.value = '';
+          }}
+        />
+        <input
+          ref={zipInputRef}
+          className="hidden"
+          type="file"
+          accept=".zip,application/zip"
+          onChange={(event) => {
+            void importZip(event.target.files?.[0] ?? null);
+            event.target.value = '';
+          }}
+        />
         <TopBar
+          onImport={openImportPicker}
           onExport={exportProject}
           onDeploy={deployProject}
           onSave={async () => {

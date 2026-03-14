@@ -10,6 +10,7 @@ import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
 export default function SettingsPage() {
   const [openAiConfigured, setOpenAiConfigured] = useState(false);
+  const [geminiConfigured, setGeminiConfigured] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const { resetProject } = useBuilderStore();
 
@@ -21,8 +22,14 @@ export default function SettingsPage() {
 
     fetch('/api/env-status')
       .then((res) => res.json())
-      .then((data) => setOpenAiConfigured(data.openaiConfigured))
-      .catch(() => setOpenAiConfigured(false));
+      .then((data) => {
+        setOpenAiConfigured(Boolean(data.openaiConfigured));
+        setGeminiConfigured(Boolean(data.geminiConfigured));
+      })
+      .catch(() => {
+        setOpenAiConfigured(false);
+        setGeminiConfigured(false);
+      });
   }, []);
 
   const runTest = async () => {
@@ -73,6 +80,25 @@ export default function SettingsPage() {
               Test AI
             </Button>
             {testResult ? <p className="mt-2 text-xs text-emerald-300">{testResult}</p> : null}
+          </div>
+
+          <div className="glass rounded-2xl p-4">
+            <p className="text-sm font-medium">Gemini API Key Status</p>
+            <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+              {IS_STATIC_EXPORT
+                ? 'GitHub Pages cannot expose server-only Gemini keys.'
+                : geminiConfigured
+                  ? 'Gemini key configured.'
+                  : 'Missing GEMINI_API_KEY.'}
+            </p>
+            {!geminiConfigured && !IS_STATIC_EXPORT ? (
+              <div className="mt-3 rounded-xl bg-amber-500/20 p-3 text-xs text-amber-200">
+                Add `GEMINI_API_KEY` to `.env.local`, then restart `npm run dev`. On hosted deployments, add this in project env vars.
+              </div>
+            ) : null}
+            <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">
+              Gemini is available as an extra provider key for future model/provider switching.
+            </p>
           </div>
 
           <div className="glass rounded-2xl p-4">
