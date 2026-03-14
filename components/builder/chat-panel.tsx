@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { useBuilderStore } from '@/lib/store/builder-store';
 import { saveChatMessage, saveVersion } from '@/lib/project-service';
-import { AI_MODELS, type AiModel, type AiResponsePayload } from '@/lib/ai/schema';
+import { AI_MODELS, getAiModelLabel, type AiModel, type AiResponsePayload } from '@/lib/ai/schema';
 import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
 const AI_TIMEOUT_MS = 285_000;
@@ -166,7 +166,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
         <h3 className="text-sm font-medium">AI Chat</h3>
         <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">
           <Sparkles className="h-3.5 w-3.5 text-cyan-500" />
-          Using {selectedModel === 'gpt-4.1' ? 'GPT-4.1' : 'GPT-5'}
+          Using {getAiModelLabel(selectedModel)}
         </div>
       </div>
 
@@ -299,7 +299,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
               >
                 {AI_MODELS.map((model) => (
                   <option key={model} value={model} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
-                    {model === 'gpt-4.1' ? 'GPT-4.1' : 'GPT-5'}
+                    {getAiModelLabel(model)}
                   </option>
                 ))}
               </select>

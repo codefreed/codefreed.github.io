@@ -16,6 +16,7 @@ const TIMEOUT_FALLBACK_MODEL = process.env.OPENAI_TIMEOUT_FALLBACK_MODEL?.trim()
 const TIMEOUT_FALLBACK_TIMEOUT_MS = parseTimeout(process.env.OPENAI_TIMEOUT_FALLBACK_MS, 90_000, 120_000);
 export const maxDuration = 300;
 const SUPPORTED_MODELS = new Set<string>(AI_MODELS);
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
 
 const systemPrompt = `You are CodedAI, a production web app code generator.
 Return ONLY JSON and no extra text.
@@ -62,6 +63,10 @@ function isTimeoutError(error: unknown) {
   return name.includes('abort') || name.includes('timeout') || message.includes('timed out') || message.includes('abort');
 }
 
+function isGeminiModel(model: string) {
+  return model.startsWith('gemini');
+}
+
 async function createCompletion(client: OpenAI, content: string, model: string, timeoutMs = OPENAI_TIMEOUT_MS) {
   const controller = new AbortController();
   let didTimeout = false;
@@ -104,7 +109,77 @@ async function createCompletion(client: OpenAI, content: string, model: string, 
   }
 }
 
+async function createGeminiCompletion(content: string, model: string, timeoutMs = OPENAI_TIMEOUT_MS) {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error('Missing GEMINI_API_KEY. Add it to .env.local and restart dev server.');
+  }
+
+  const controller = new AbortController();
+  let didTimeout = false;
+  const timeoutId = setTimeout(() => {
+    didTimeout = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: content }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          responseMimeType: 'application/json'
+        }
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Gemini request failed with status ${response.status}`);
+    }
+
+    const data = (await response.json()) as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{ text?: string }>;
+        };
+      }>;
+    };
+
+    const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('').trim() ?? '';
+    if (!text) {
+      throw new Error('Gemini returned an empty response');
+    }
+
+    return text;
+  } catch (error) {
+    if (didTimeout) {
+      throw new Error(`Gemini request timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function createCompletionWithFallback(client: OpenAI, content: string, requestedModel: AiModel) {
+  if (isGeminiModel(requestedModel)) {
+    return createGeminiCompletion(content, requestedModel || DEFAULT_GEMINI_MODEL);
+  }
+
   try {
     return await createCompletion(client, content, requestedModel);
   } catch (error) {
@@ -147,17 +222,6 @@ function buildUserPayload(input: {
 }
 
 export async function POST(req: Request) {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        error:
-          'Missing OPENAI_API_KEY. Add it to .env.local and restart dev server. Use /app/settings for setup instructions.'
-      },
-      { status: 400 }
-    );
-  }
-
   try {
     const body = await req.json();
     const parsed = AiRequestSchema.safeParse(body);
@@ -166,10 +230,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid input payload' }, { status: 400 });
     }
 
-    const client = new OpenAI({ apiKey, maxRetries: 0 });
     const userPayload = buildUserPayload(parsed.data);
     const selectedModel =
       parsed.data.model && SUPPORTED_MODELS.has(parsed.data.model) ? parsed.data.model : PRIMARY_MODEL;
+    const usingGemini = isGeminiModel(selectedModel);
+    const openAiApiKey = process.env.OPENAI_API_KEY?.trim();
+
+    if (!usingGemini && !openAiApiKey) {
+      return NextResponse.json(
+        {
+          error:
+            'Missing OPENAI_API_KEY. Add it to .env.local and restart dev server. Use /app/settings for setup instructions.'
+        },
+        { status: 400 }
+      );
+    }
+
+    if (usingGemini && !process.env.GEMINI_API_KEY?.trim()) {
+      return NextResponse.json(
+        {
+          error: 'Missing GEMINI_API_KEY. Add it to .env.local and restart dev server.'
+        },
+        { status: 400 }
+      );
+    }
+
+    const client = new OpenAI({ apiKey: openAiApiKey, maxRetries: 0 });
 
     let raw = await createCompletionWithFallback(client, userPayload, selectedModel);
     let json: unknown;
@@ -204,9 +290,15 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
+    if (error instanceof Error && error.message.toLowerCase().includes('gemini')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
     if (isTimeoutError(error)) {
       return NextResponse.json(
-        { error: 'OpenAI took too long to respond. Please try again.' },
+        { error: 'The selected AI model took too long to respond. Please try again.' },
         { status: 504 }
       );
     }

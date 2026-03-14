@@ -1,6 +1,19 @@
 import { z } from 'zod';
 
-export const AI_MODELS = ['gpt-4.1', 'gpt-5'] as const;
+export const AI_MODELS = ['gpt-4.1', 'gpt-5', 'gemini-2.5-flash'] as const;
+
+export function getAiModelLabel(model: (typeof AI_MODELS)[number]) {
+  switch (model) {
+    case 'gpt-4.1':
+      return 'GPT-4.1';
+    case 'gpt-5':
+      return 'GPT-5';
+    case 'gemini-2.5-flash':
+      return 'Gemini 2.5 Flash';
+    default:
+      return model;
+  }
+}
 
 export const FileOpSchema = z.object({
   path: z.string().min(1),
