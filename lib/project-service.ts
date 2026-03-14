@@ -184,10 +184,6 @@ export async function saveProjectBundle(params: {
   messages: ChatMessage[];
 }) {
   const client = getFirebaseClient();
-  if (!client) {
-    throw new Error('Firebase is not configured.');
-  }
-
   const now = Date.now();
   const creatingProject = params.projectId === LOCAL_PROJECT_ID;
   const projectId = creatingProject ? uuid() : params.projectId;
@@ -215,68 +211,70 @@ export async function saveProjectBundle(params: {
     messages: [...params.messages].sort((a, b) => a.createdAt - b.createdAt)
   };
 
-  const projectDocRef = doc(client.db, 'projects', projectId);
-  try {
-    if (creatingProject) {
-      await withFirestoreTimeout(
-        setDoc(
-          projectDocRef,
-          {
-            ownerId: params.ownerId,
-            name: projectName,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            currentVersionId: currentVersion?.id ?? null
-          },
-          { merge: true }
-        ),
-        'Creating Firebase project'
-      );
+  if (client) {
+    const projectDocRef = doc(client.db, 'projects', projectId);
+    try {
+      if (creatingProject) {
+        await withFirestoreTimeout(
+          setDoc(
+            projectDocRef,
+            {
+              ownerId: params.ownerId,
+              name: projectName,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              currentVersionId: currentVersion?.id ?? null
+            },
+            { merge: true }
+          ),
+          'Creating Firebase project'
+        );
+      }
+
+      const operations: Array<(batch: ReturnType<typeof writeBatch>) => void> = [];
+
+      if (!creatingProject) {
+        operations.push((batch) =>
+          batch.set(
+            projectDocRef,
+            {
+              ownerId: params.ownerId,
+              name: projectName,
+              updatedAt: serverTimestamp(),
+              currentVersionId: currentVersion?.id ?? null
+            },
+            { merge: true }
+          )
+        );
+      }
+
+      for (const version of bundle.versions) {
+        operations.push((batch) =>
+          batch.set(doc(client.db, 'projects', projectId, 'versions', version.id), {
+            createdAt: version.createdAt,
+            commitMessage: version.commitMessage,
+            files: version.files
+          })
+        );
+      }
+
+      for (const message of bundle.messages) {
+        operations.push((batch) =>
+          batch.set(doc(client.db, 'projects', projectId, 'chats', 'main', 'messages', message.id), {
+            role: message.role,
+            content: message.content,
+            createdAt: message.createdAt,
+            versionIdApplied: message.versionIdApplied ?? null,
+            diffSummary: message.diffSummary ?? []
+          })
+        );
+      }
+
+      await commitWriteOperations(client.db, operations, 'Saving project to Firebase');
+    } catch {
+      // Match the rest of the project persistence flow: keep working locally
+      // when Firestore is slow or temporarily unavailable.
     }
-
-    const operations: Array<(batch: ReturnType<typeof writeBatch>) => void> = [];
-
-    if (!creatingProject) {
-      operations.push((batch) =>
-        batch.set(
-          projectDocRef,
-          {
-            ownerId: params.ownerId,
-            name: projectName,
-            updatedAt: serverTimestamp(),
-            currentVersionId: currentVersion?.id ?? null
-          },
-          { merge: true }
-        )
-      );
-    }
-
-    for (const version of bundle.versions) {
-      operations.push((batch) =>
-        batch.set(doc(client.db, 'projects', projectId, 'versions', version.id), {
-          createdAt: version.createdAt,
-          commitMessage: version.commitMessage,
-          files: version.files
-        })
-      );
-    }
-
-    for (const message of bundle.messages) {
-      operations.push((batch) =>
-        batch.set(doc(client.db, 'projects', projectId, 'chats', 'main', 'messages', message.id), {
-          role: message.role,
-          content: message.content,
-          createdAt: message.createdAt,
-          versionIdApplied: message.versionIdApplied ?? null,
-          diffSummary: message.diffSummary ?? []
-        })
-      );
-    }
-
-    await commitWriteOperations(client.db, operations, 'Saving project to Firebase');
-  } catch {
-    // Match the rest of the project persistence flow: keep working locally
-    // when Firestore is slow or temporarily unavailable.
   }
 
   upsertLocalBundle(bundle);

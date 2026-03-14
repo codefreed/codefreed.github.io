@@ -18,19 +18,18 @@ export default function ProjectsPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { files, loadProject: loadToStore } = useBuilderStore();
+  const ownerId = user?.uid ?? 'guest';
 
   useEffect(() => {
-    if (!user) return;
-    listProjects(user.uid)
+    listProjects(ownerId)
       .then(setProjects)
       .catch(() => toast.error('Could not load projects'));
-  }, [user]);
+  }, [ownerId]);
 
   const createNew = async () => {
-    if (!user) return;
     try {
       setBusy(true);
-      const bundle = await createProject(user.uid, `Project ${projects.length + 1}`, files);
+      const bundle = await createProject(ownerId, `Project ${projects.length + 1}`, files);
       setProjects((prev) => [bundle.project, ...prev]);
       toast.success('Project created');
     } catch {

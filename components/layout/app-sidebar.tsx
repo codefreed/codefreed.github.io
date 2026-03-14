@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, FolderKanban, FileCode2, ImageIcon, Flame, Settings, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FolderKanban, FileCode2, ImageIcon, Flame, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
-import { logoutClient } from '@/lib/auth-client';
 
 const navItems = [
   { href: '/app/projects', label: 'Projects', icon: FolderKanban },
@@ -53,20 +52,6 @@ export function AppSidebar({ collapsed, onToggle }: { collapsed: boolean; onTogg
           );
         })}
       </nav>
-      <div className="mt-4 border-t border-white/20 pt-3">
-        <Button
-          variant="ghost"
-          className={cn('w-full', collapsed ? 'justify-center px-0' : 'justify-start')}
-          onClick={async () => {
-            await logoutClient();
-            window.location.href = '/login';
-          }}
-          title="Logout"
-        >
-          <LogOut className={cn('h-4 w-4', collapsed ? '' : 'mr-2')} />
-          {collapsed ? null : 'Logout'}
-        </Button>
-      </div>
     </GlassPanel>
   );
 }

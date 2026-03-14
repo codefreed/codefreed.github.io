@@ -5,7 +5,6 @@ import JSZip from 'jszip';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
 import { TopBar } from '@/components/builder/top-bar';
-import { ChatPanel } from '@/components/builder/chat-panel';
 import { PreviewPanel } from '@/components/builder/preview-panel';
 import { useAuth } from '@/components/providers/auth-provider';
 import { saveProjectBundle } from '@/lib/project-service';
@@ -14,7 +13,7 @@ import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
 export default function BuilderPage() {
   const { user } = useAuth();
-  const { projectId, projectName, files, versions, messages, applyAiResponse, loadProject, setSaving, markSaved } =
+  const { projectId, projectName, files, versions, messages, loadProject, setSaving, markSaved } =
     useBuilderStore();
   const [mounted, setMounted] = useState(false);
 
@@ -115,15 +114,10 @@ export default function BuilderPage() {
           onExport={exportProject}
           onDeploy={deployProject}
           onSave={async () => {
-            if (!user) {
-              toast.error('You need to be logged in to save.');
-              return;
-            }
-
             try {
               setSaving(true);
               const bundle = await saveProjectBundle({
-                ownerId: user.uid,
+                ownerId: user?.uid ?? 'guest',
                 projectId,
                 name: projectName,
                 files,
@@ -139,7 +133,7 @@ export default function BuilderPage() {
                 messages: bundle.messages
               });
               markSaved();
-              toast.success('Project saved to Firebase');
+              toast.success(user ? 'Project saved' : 'Project saved locally');
             } catch (error) {
               toast.error(error instanceof Error ? error.message : 'Project save failed');
             } finally {
@@ -148,29 +142,11 @@ export default function BuilderPage() {
           }}
         />
 
-        <section className="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-[380px_1fr]">
-          <ChatPanel projectId={projectId} />
+        <section className="grid min-h-0 grid-cols-1 gap-4">
           <PreviewPanel
             files={files}
-            onFixWithAi={async (errorText) => {
-              const response = await fetch('/api/ai', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  instruction: 'Fix the project errors while preserving design intent.',
-                  files,
-                  errorContext: errorText
-                })
-              });
-
-              if (!response.ok) {
-                toast.error('Fix with AI failed');
-                return;
-              }
-
-              const payload = await response.json();
-              applyAiResponse(payload);
-              toast.success('Applied AI fix from preview error');
+            onFixWithAi={async () => {
+              toast.error('AI editing is temporarily disabled');
             }}
           />
         </section>
