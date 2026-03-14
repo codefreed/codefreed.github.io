@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { v4 as uuid } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -55,7 +56,9 @@ export function ChatPanel({ projectId }: { projectId: string }) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [workingStep, setWorkingStep] = useState(0);
+  const [attachments, setAttachments] = useState<Array<{ name: string; content: string }>>([]);
   const messagesRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { files, messages, versions, addUserMessage, applyAiResponse, rollbackVersion, setSaving, markSaved } =
     useBuilderStore();
 
@@ -77,7 +80,13 @@ export function ChatPanel({ projectId }: { projectId: string }) {
   }, [messages, busy, workingStep]);
 
   const send = async (overrideInstruction?: string, errorContext?: string) => {
-    const instruction = (overrideInstruction ?? input).trim();
+    const baseInstruction = (overrideInstruction ?? input).trim();
+    const attachmentContext = attachments.length
+      ? `\n\nAttached reference files:\n${attachments
+          .map((file) => `\nFile: ${file.name}\n\`\`\`\n${file.content}\n\`\`\``)
+          .join('\n')}`
+      : '';
+    const instruction = `${baseInstruction}${attachmentContext}`.trim();
     if (!instruction) return;
     if (IS_STATIC_EXPORT) {
       toast.error('AI editing is unavailable on GitHub Pages. Deploy this app to Vercel to enable server-backed AI.');
@@ -113,6 +122,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
       markSaved();
       toast.success('Changes applied');
       setInput('');
+      setAttachments([]);
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         toast.error(`AI request timed out after ${AI_TIMEOUT_SECONDS}s. Try again if the model was still working.`);
@@ -122,6 +132,26 @@ export function ChatPanel({ projectId }: { projectId: string }) {
     } finally {
       setBusy(false);
       setSaving(false);
+    }
+  };
+
+  const uploadFiles = async (selectedFiles: FileList | null) => {
+    if (!selectedFiles?.length) {
+      return;
+    }
+
+    try {
+      const nextAttachments = await Promise.all(
+        Array.from(selectedFiles).map(async (file) => ({
+          name: file.name,
+          content: (await file.text()).slice(0, 40_000)
+        }))
+      );
+
+      setAttachments((current) => [...current, ...nextAttachments]);
+      toast.success(`${nextAttachments.length} file${nextAttachments.length > 1 ? 's' : ''} attached for AI context`);
+    } catch {
+      toast.error('Could not read one or more files');
     }
   };
 
@@ -202,19 +232,55 @@ export function ChatPanel({ projectId }: { projectId: string }) {
       </div>
 
       <div className="mt-3 space-y-2">
+        <input
+          ref={fileInputRef}
+          className="hidden"
+          multiple
+          type="file"
+          onChange={(event) => {
+            void uploadFiles(event.target.files);
+            event.target.value = '';
+          }}
+        />
         <Textarea
-          placeholder="Build a premium SaaS landing page for an AI startup with a polished, modern feel..."
+          className="min-h-[150px]"
+          placeholder="Build a premium SaaS landing page for an AI startup with a polished, modern feel. Include a hero, features, testimonials, pricing, and a strong CTA."
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />
+        {attachments.length ? (
+          <div className="flex flex-wrap gap-2">
+            {attachments.map((file) => (
+              <span
+                key={`${file.name}-${file.content.length}`}
+                className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs text-slate-700 dark:bg-slate-700/50 dark:text-slate-200"
+              >
+                <Paperclip className="h-3 w-3" />
+                {file.name}
+                <button
+                  type="button"
+                  onClick={() => setAttachments((current) => current.filter((item) => item !== file))}
+                  className="text-slate-500 transition hover:text-white"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
         <p className="text-xs text-slate-600 dark:text-slate-300">
           {IS_STATIC_EXPORT
             ? 'This GitHub Pages build keeps preview and Firebase flows, but AI editing needs a server deployment such as Vercel.'
-            : 'You only need to describe what you want. The AI will decide when to add components, styles, and interactions.'}
+            : 'You can still use long prompts and multi-file instructions. The AI can make coordinated changes across the project in one pass.'}
         </p>
-        <Button className="w-full" onClick={() => send()} disabled={busy || !input.trim()}>
-          {busy ? 'Generating...' : IS_STATIC_EXPORT ? 'AI Unavailable on Pages' : 'Send'}
-        </Button>
+        <div className="flex gap-2">
+          <Button className="flex-1" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={busy}>
+            <Paperclip className="mr-1 h-4 w-4" /> Upload Files
+          </Button>
+          <Button className="flex-[1.4]" onClick={() => send()} disabled={busy || (!input.trim() && !attachments.length)}>
+          {busy ? 'Generating...' : IS_STATIC_EXPORT ? 'AI Unavailable on Pages' : 'Send to AI'}
+          </Button>
+        </div>
       </div>
     </GlassPanel>
   );

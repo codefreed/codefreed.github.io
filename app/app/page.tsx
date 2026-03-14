@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import JSZip from 'jszip';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
+import { ChatPanel, fixPreviewWithAi } from '@/components/builder/chat-panel';
 import { TopBar } from '@/components/builder/top-bar';
 import { PreviewPanel } from '@/components/builder/preview-panel';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -12,10 +13,13 @@ import { useBuilderStore } from '@/lib/store/builder-store';
 import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
 export default function BuilderPage() {
+  const splitHandleRef = useRef<HTMLDivElement | null>(null);
   const { user } = useAuth();
   const { projectId, projectName, files, versions, messages, loadProject, setSaving, markSaved } =
     useBuilderStore();
   const [mounted, setMounted] = useState(false);
+  const [chatWidth, setChatWidth] = useState(540);
+  const [resizing, setResizing] = useState(false);
 
   const exportProject = async () => {
     const currentFiles = useBuilderStore.getState().files;
@@ -103,7 +107,57 @@ export default function BuilderPage() {
     }
   };
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const savedWidth = window.localStorage.getItem('codedai-chat-width');
+      if (savedWidth) {
+        const parsed = Number(savedWidth);
+        if (!Number.isNaN(parsed)) {
+          setChatWidth(parsed);
+        }
+      }
+    } catch {
+      // Ignore localStorage read issues.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('codedai-chat-width', String(chatWidth));
+    } catch {
+      // Ignore localStorage write issues.
+    }
+  }, [chatWidth]);
+
+  useEffect(() => {
+    if (!resizing) {
+      return;
+    }
+
+    const onPointerMove = (event: PointerEvent) => {
+      const shell = splitHandleRef.current?.parentElement;
+      if (!shell) {
+        return;
+      }
+
+      const bounds = shell.getBoundingClientRect();
+      const nextWidth = event.clientX - bounds.left;
+      const minWidth = 420;
+      const maxWidth = Math.min(760, bounds.width - 420);
+      setChatWidth(Math.max(minWidth, Math.min(maxWidth, nextWidth)));
+    };
+
+    const onPointerUp = () => setResizing(false);
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+  }, [resizing]);
 
   if (!mounted) return null;
 
@@ -142,11 +196,37 @@ export default function BuilderPage() {
           }}
         />
 
-        <section className="grid min-h-0 grid-cols-1 gap-4">
+        <section
+          className="grid min-h-0 grid-cols-1 gap-5 xl:gap-0"
+          style={{
+            gridTemplateColumns:
+              typeof window !== 'undefined' && window.innerWidth >= 1280
+                ? `${chatWidth}px 18px minmax(0, 1fr)`
+                : 'minmax(0, 1fr)'
+          }}
+        >
+          <ChatPanel projectId={projectId} />
+          <div
+            ref={splitHandleRef}
+            className={`relative hidden xl:flex xl:items-center xl:justify-center ${resizing ? 'bg-cyan-400/10' : ''}`}
+            onPointerDown={() => setResizing(true)}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize chat and preview panels"
+          >
+            <div className="h-full w-px bg-white/10" />
+            <div className="absolute h-24 w-2 cursor-col-resize rounded-full bg-white/20 transition hover:bg-cyan-400/60" />
+          </div>
           <PreviewPanel
             files={files}
-            onFixWithAi={async () => {
-              toast.error('AI editing is temporarily disabled');
+            onFixWithAi={async (errorText) => {
+              try {
+                const payload = await fixPreviewWithAi(projectId, files, errorText);
+                useBuilderStore.getState().applyAiResponse(payload);
+                toast.success('Applied AI fix from preview error');
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Fix with AI failed');
+              }
             }}
           />
         </section>
