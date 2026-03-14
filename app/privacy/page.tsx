@@ -73,52 +73,54 @@ const sections = [
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto min-h-screen max-w-4xl px-4 py-8">
-      <div className="glass rounded-3xl p-6 md:p-8">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+    <main className="min-h-screen">
+      <section className="border-b border-white/15 px-4 py-6">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-cyan-500">CodeFreed</p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">Privacy Policy</h1>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Last Updated: March 14, 2026</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">CodeFreed</p>
+            <h1 className="mt-2 text-4xl font-semibold text-slate-900 dark:text-white md:text-5xl">Privacy Policy</h1>
+            <p className="mt-3 max-w-3xl text-base text-slate-700 dark:text-slate-300 md:text-lg">
+              Last Updated: March 14, 2026. This policy explains how we collect, use, and protect your information when you visit CodeFreed.
+            </p>
           </div>
           <Link href="/" className="text-sm text-cyan-600 dark:text-cyan-300">
             Back to home
           </Link>
         </div>
+      </section>
 
-        <p className="mb-8 text-sm leading-7 text-slate-700 dark:text-slate-200">
-          Welcome to CodeFreed. Your privacy is important to us. This Privacy Policy explains how we collect, use,
-          and protect your information when you visit our website.
-        </p>
-
-        <div className="space-y-8">
+      <section className="px-4 py-10 md:py-14">
+        <div className="mx-auto w-full max-w-6xl space-y-6">
           {sections.map((section) => (
-            <section key={section.title}>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{section.title}</h2>
-              <div className="mt-3 space-y-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
+            <article key={section.title} className="glass rounded-3xl p-6 md:p-7">
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">{section.title}</h2>
+              <div className="mt-4 space-y-3 text-sm leading-7 text-slate-700 dark:text-slate-200 md:text-base">
                 {section.body.map((paragraph) => (
                   <p key={paragraph}>{paragraph}</p>
                 ))}
               </div>
-            </section>
+            </article>
           ))}
-        </div>
 
-        <div className="mt-8 rounded-2xl bg-white/20 p-4 text-sm text-slate-700 dark:bg-slate-800/40 dark:text-slate-200">
-          <p>
-            Learn more about how Google uses data:{' '}
-            <a className="text-cyan-600 dark:text-cyan-300" href="https://policies.google.com/technologies/ads">
-              policies.google.com/technologies/ads
-            </a>
-          </p>
-          <p className="mt-2">
-            You can opt out of personalized advertising at:{' '}
-            <a className="text-cyan-600 dark:text-cyan-300" href="https://adssettings.google.com/">
-              adssettings.google.com
-            </a>
-          </p>
+          <section className="glass rounded-3xl p-6 md:p-7">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Google Advertising Information</h2>
+            <div className="mt-4 space-y-3 text-sm leading-7 text-slate-700 dark:text-slate-200 md:text-base">
+              <p>
+                Learn more about how Google uses data:{' '}
+                <a className="text-cyan-600 dark:text-cyan-300" href="https://policies.google.com/technologies/ads">
+                  policies.google.com/technologies/ads
+                </a>
+              </p>
+              <p>
+                You can opt out of personalized advertising at:{' '}
+                <a className="text-cyan-600 dark:text-cyan-300" href="https://adssettings.google.com/">
+                  adssettings.google.com
+                </a>
+              </p>
+            </div>
+          </section>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

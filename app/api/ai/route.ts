@@ -13,10 +13,7 @@ const PRIMARY_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-5';
 const FALLBACK_MODEL = process.env.OPENAI_FALLBACK_MODEL?.trim() || 'gpt-4.1';
 const TIMEOUT_FALLBACK_MODEL = process.env.OPENAI_TIMEOUT_FALLBACK_MODEL?.trim() || 'gpt-4.1-mini';
 const TIMEOUT_FALLBACK_TIMEOUT_MS = parseTimeout(process.env.OPENAI_TIMEOUT_FALLBACK_MS, 90_000, 120_000);
-const TOTAL_OPENAI_TIMEOUT_MS =
-  OPENAI_TIMEOUT_MS + (TIMEOUT_FALLBACK_MODEL !== PRIMARY_MODEL ? TIMEOUT_FALLBACK_TIMEOUT_MS : 0);
-
-export const maxDuration = Math.min(Math.max(Math.ceil((TOTAL_OPENAI_TIMEOUT_MS + 30_000) / 1000), 120), 300);
+export const maxDuration = 300;
 
 const systemPrompt = `You are CodedAI, a production web app code generator.
 Return ONLY JSON and no extra text.
