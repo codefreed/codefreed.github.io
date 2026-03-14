@@ -46,6 +46,8 @@ const showcaseCards = [
 export default function LandingPage() {
   const primaryLinkClass =
     'glass inline-flex h-10 items-center justify-center whitespace-nowrap rounded-2xl px-4 py-2 text-sm font-medium text-slate-900 transition-all hover:-translate-y-0.5 hover:shadow-glow dark:text-slate-100';
+  const navLinkClass =
+    'glass inline-flex h-10 items-center justify-center whitespace-nowrap rounded-2xl px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:-translate-y-0.5 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white';
   const primaryLinkLargeClass =
     'glass inline-flex h-11 items-center justify-center whitespace-nowrap rounded-2xl px-5 py-2 text-sm font-medium text-slate-900 transition-all hover:-translate-y-0.5 hover:shadow-glow dark:text-slate-100';
   const secondaryLinkLargeClass =
@@ -56,9 +58,18 @@ export default function LandingPage() {
       <header className="mb-14 flex flex-wrap items-center justify-between gap-4 animate-fadeInUp">
         <div className="glass rounded-full px-4 py-2 text-sm animate-drift">CodeFreed</div>
         <nav className="flex flex-wrap items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-          <Link href="/features">Features</Link>
-          <Link href="/pricing">Pricing</Link>
-          <Link href="/faq">FAQ</Link>
+          <Link href="/features" className={navLinkClass}>
+            Features
+          </Link>
+          <Link href="/api" className={navLinkClass}>
+            API
+          </Link>
+          <Link href="/pricing" className={navLinkClass}>
+            Pricing
+          </Link>
+          <Link href="/faq" className={navLinkClass}>
+            FAQ
+          </Link>
           <ThemeToggle />
           <Link href="/app" className={primaryLinkClass}>
             Open Studio
@@ -202,6 +213,7 @@ export default function LandingPage() {
         <p>CodeFreed</p>
         <div className="flex flex-wrap gap-4">
           <Link href="/features">Features</Link>
+          <Link href="/api">API</Link>
           <Link href="/pricing">Pricing</Link>
           <Link href="/faq">FAQ</Link>
           <Link href="/about">About</Link>

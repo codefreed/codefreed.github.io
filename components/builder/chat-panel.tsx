@@ -1,15 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Paperclip, X } from 'lucide-react';
+import { Box, Paperclip, Plus, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { v4 as uuid } from 'uuid';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { useBuilderStore } from '@/lib/store/builder-store';
 import { saveChatMessage, saveVersion } from '@/lib/project-service';
-import type { AiResponsePayload } from '@/lib/ai/schema';
+import { AI_MODELS, type AiModel, type AiResponsePayload } from '@/lib/ai/schema';
 import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
 const AI_TIMEOUT_MS = 285_000;
@@ -30,7 +29,12 @@ function parseErrorMessage(text: string) {
   }
 }
 
-async function runAi(params: { instruction: string; files: Record<string, string>; errorContext?: string }) {
+async function runAi(params: {
+  instruction: string;
+  model: AiModel;
+  files: Record<string, string>;
+  errorContext?: string;
+}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
   try {
@@ -61,6 +65,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { files, messages, versions, addUserMessage, applyAiResponse, rollbackVersion, setSaving, markSaved } =
     useBuilderStore();
+  const selectedModel = useBuilderStore((state) => state.selectedModel);
 
   useEffect(() => {
     if (!busy) return;
@@ -104,7 +109,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
         createdAt: Date.now()
       }).catch(() => undefined);
 
-      const ai = await runAi({ instruction, files, errorContext });
+      const ai = await runAi({ instruction, model: selectedModel, files, errorContext });
       const result = applyAiResponse(ai);
 
       const assistantMessage = {
@@ -156,12 +161,16 @@ export function ChatPanel({ projectId }: { projectId: string }) {
   };
 
   return (
-    <GlassPanel className="flex h-full flex-col">
+    <GlassPanel className="relative flex h-full flex-col overflow-hidden">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-medium">AI Chat</h3>
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">
+          <Sparkles className="h-3.5 w-3.5 text-cyan-500" />
+          Using {selectedModel === 'gpt-4.1' ? 'GPT-4.1' : 'GPT-5'}
+        </div>
       </div>
 
-      <div ref={messagesRef} className="flex-1 space-y-3 overflow-y-auto pr-1">
+      <div ref={messagesRef} className="flex-1 space-y-3 overflow-y-auto pr-1 pb-64">
         {messages.length === 0 ? (
           <div className="rounded-2xl bg-white/20 p-3 text-sm text-slate-700 dark:bg-slate-700/40 dark:text-slate-200">
             Describe your site and I will handle the layout, styling, structure, and supporting files automatically.
@@ -231,7 +240,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
         ) : null}
       </div>
 
-      <div className="mt-3 space-y-2">
+      <div className="pointer-events-none absolute inset-x-3 bottom-20 z-10 sm:inset-x-4 sm:bottom-24">
         <input
           ref={fileInputRef}
           className="hidden"
@@ -242,44 +251,77 @@ export function ChatPanel({ projectId }: { projectId: string }) {
             event.target.value = '';
           }}
         />
-        <Textarea
-          className="min-h-[150px]"
-          placeholder="Build a premium SaaS landing page for an AI startup with a polished, modern feel. Include a hero, features, testimonials, pricing, and a strong CTA."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
-        {attachments.length ? (
-          <div className="flex flex-wrap gap-2">
-            {attachments.map((file) => (
-              <span
-                key={`${file.name}-${file.content.length}`}
-                className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs text-slate-700 dark:bg-slate-700/50 dark:text-slate-200"
-              >
-                <Paperclip className="h-3 w-3" />
-                {file.name}
-                <button
-                  type="button"
-                  onClick={() => setAttachments((current) => current.filter((item) => item !== file))}
-                  className="text-slate-500 transition hover:text-white"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        ) : null}
-        <p className="text-xs text-slate-600 dark:text-slate-300">
+        <p className="pointer-events-auto mb-2 px-2 text-[11px] text-slate-500 dark:text-slate-400">
           {IS_STATIC_EXPORT
-            ? 'This GitHub Pages build keeps preview and Firebase flows, but AI editing needs a server deployment such as Vercel.'
-            : 'You can still use long prompts and multi-file instructions. The AI can make coordinated changes across the project in one pass.'}
+            ? 'AI editing needs a server deployment such as Vercel.'
+            : 'AI can make mistakes. Check important info.'}
         </p>
-        <div className="flex gap-2">
-          <Button className="flex-1" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={busy}>
-            <Paperclip className="mr-1 h-4 w-4" /> Upload Files
-          </Button>
-          <Button className="flex-[1.4]" onClick={() => send()} disabled={busy || (!input.trim() && !attachments.length)}>
-          {busy ? 'Generating...' : IS_STATIC_EXPORT ? 'AI Unavailable on Pages' : 'Send to AI'}
-          </Button>
+        <div className="pointer-events-auto rounded-[1.75rem] border border-white/20 bg-[rgba(255,255,255,0.88)] p-2.5 shadow-[0_24px_70px_rgba(15,23,42,0.22)] backdrop-blur-2xl dark:bg-[rgba(15,23,42,0.88)] sm:rounded-[2rem] sm:p-3">
+          {attachments.length ? (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {attachments.map((file) => (
+                <span
+                  key={`${file.name}-${file.content.length}`}
+                  className="inline-flex items-center gap-2 rounded-full bg-slate-900/8 px-3 py-1 text-xs text-slate-700 dark:bg-white/10 dark:text-slate-200"
+                >
+                  <Paperclip className="h-3 w-3" />
+                  {file.name}
+                  <button
+                    type="button"
+                    onClick={() => setAttachments((current) => current.filter((item) => item !== file))}
+                    className="text-slate-500 transition hover:text-slate-900 dark:hover:text-white"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-end gap-2 sm:flex-nowrap sm:gap-3">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={busy}
+              className="glass flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-900 transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(34,211,238,0.16)] disabled:cursor-not-allowed disabled:opacity-60 dark:text-white sm:h-12 sm:w-12"
+              aria-label="Upload files"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+
+            <div className="relative shrink-0">
+              <Box className="pointer-events-none absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-cyan-600 dark:text-cyan-300" />
+              <select
+                value={selectedModel}
+                onChange={(event) => useBuilderStore.getState().setSelectedModel(event.target.value as AiModel)}
+                className="glass h-11 w-11 appearance-none rounded-full text-transparent outline-none transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(34,211,238,0.16)] focus:ring-2 focus:ring-cyan-300/40 dark:focus:ring-cyan-500/20 sm:h-12 sm:w-12"
+                aria-label="Select AI model"
+              >
+                {AI_MODELS.map((model) => (
+                  <option key={model} value={model} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                    {model === 'gpt-4.1' ? 'GPT-4.1' : 'GPT-5'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+              <textarea
+                className="min-h-[60px] w-full resize-none border-0 bg-transparent px-1 py-1.5 text-base text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400 sm:min-h-[72px] sm:py-2"
+                placeholder="Ask anything about the site you want to build..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+              />
+            </div>
+
+            <Button
+              className="h-11 shrink-0 rounded-full px-5 sm:h-12"
+              onClick={() => send()}
+              disabled={busy || (!input.trim() && !attachments.length)}
+            >
+              {busy ? 'Generating...' : IS_STATIC_EXPORT ? 'Unavailable' : 'Send'}
+            </Button>
+          </div>
         </div>
       </div>
     </GlassPanel>
@@ -291,13 +333,19 @@ export async function fixPreviewWithAi(projectId: string, files: Record<string, 
     throw new Error('Fix with AI is unavailable on GitHub Pages. Deploy to Vercel to use AI routes.');
   }
 
+  const model = useBuilderStore.getState().selectedModel;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
   try {
     const response = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ instruction: 'Fix preview errors and keep behavior intact.', files, errorContext: error }),
+      body: JSON.stringify({
+        instruction: 'Fix preview errors and keep behavior intact.',
+        model,
+        files,
+        errorContext: error
+      }),
       signal: controller.signal
     });
 

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const AI_MODELS = ['gpt-4.1', 'gpt-5'] as const;
+
 export const FileOpSchema = z.object({
   path: z.string().min(1),
   type: z.enum(['upsert', 'delete']),
@@ -14,6 +16,7 @@ export const AiResponseSchema = z.object({
 
 export const AiRequestSchema = z.object({
   instruction: z.string().min(1),
+  model: z.enum(AI_MODELS).optional(),
   files: z.record(z.string()),
   projectMeta: z
     .object({
@@ -25,3 +28,4 @@ export const AiRequestSchema = z.object({
 });
 
 export type AiResponsePayload = z.infer<typeof AiResponseSchema>;
+export type AiModel = (typeof AI_MODELS)[number];

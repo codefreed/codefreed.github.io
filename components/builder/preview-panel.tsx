@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sandpack, SandpackPreview, SandpackProvider, type SandpackFiles, type SandpackPreviewRef } from '@codesandbox/sandpack-react';
-import { Code2, Copy, ExternalLink, Eye, FileCode2, Files, FolderTree, MonitorSmartphone, Play, Search, Wand2, X } from 'lucide-react';
+import { Code2, Copy, ExternalLink, FileCode2, Files, FolderTree, MonitorSmartphone, Play, Search, Wand2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -77,6 +77,330 @@ button {
 }
 `;
 
+const previewLinkShim = `import React from 'react';
+
+type LinkProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  href: string;
+};
+
+export default function Link({ href, children, ...props }: LinkProps) {
+  return (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  );
+}
+`;
+
+const previewImageShim = `import React from 'react';
+
+type ImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
+  src: string;
+  alt: string;
+};
+
+export default function Image(props: ImageProps) {
+  return <img {...props} />;
+}
+`;
+
+const previewScriptShim = `import { useEffect } from 'react';
+
+type ScriptProps = React.ScriptHTMLAttributes<HTMLScriptElement> & {
+  strategy?: string;
+};
+
+export default function Script({ strategy, ...props }: ScriptProps) {
+  useEffect(() => {
+    const script = document.createElement('script');
+    Object.entries(props).forEach(([key, value]) => {
+      if (value == null || key === 'children') return;
+      if (key === 'async') {
+        script.async = Boolean(value);
+        return;
+      }
+      script.setAttribute(key, String(value));
+    });
+    if (typeof props.children === 'string') {
+      script.textContent = props.children;
+    }
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, [props]);
+
+  return null;
+}
+`;
+
+function ensureRelativeImport(value: string) {
+  return value.startsWith('.') ? value : `./${value}`;
+}
+
+function dirname(filePath: string) {
+  const normalized = filePath.replace(/\/+/g, '/');
+  const index = normalized.lastIndexOf('/');
+  return index <= 0 ? '/' : normalized.slice(0, index);
+}
+
+function extension(filePath: string) {
+  const lastSegment = filePath.split('/').pop() ?? '';
+  const index = lastSegment.lastIndexOf('.');
+  return index === -1 ? '' : lastSegment.slice(index);
+}
+
+function joinPath(...parts: string[]) {
+  return parts
+    .join('/')
+    .replace(/\/+/g, '/')
+    .replace(/\/$/, '');
+}
+
+function relativePath(fromDir: string, toPath: string) {
+  const fromParts = fromDir.split('/').filter(Boolean);
+  const toParts = toPath.split('/').filter(Boolean);
+
+  while (fromParts.length && toParts.length && fromParts[0] === toParts[0]) {
+    fromParts.shift();
+    toParts.shift();
+  }
+
+  const up = fromParts.map(() => '..');
+  return [...up, ...toParts].join('/');
+}
+
+function resolveAliasTarget(importPath: string, sourcePath: string, targetPath: string) {
+  const relativeTarget = relativePath(dirname(sourcePath), targetPath);
+  const withPrefix = ensureRelativeImport(relativeTarget);
+  const sourceExt = extension(importPath);
+  const targetExt = extension(targetPath);
+
+  if (!sourceExt && targetExt && withPrefix.endsWith(targetExt)) {
+    return withPrefix.slice(0, -targetExt.length);
+  }
+
+  return withPrefix;
+}
+
+function rewritePreviewImports(sourcePath: string, content: string, knownFiles: Set<string>) {
+  const linkShimPath = resolveAliasTarget('lib/preview/next-link', sourcePath, '/lib/preview/next-link.tsx');
+  const imageShimPath = resolveAliasTarget('lib/preview/next-image', sourcePath, '/lib/preview/next-image.tsx');
+  const scriptShimPath = resolveAliasTarget('lib/preview/next-script', sourcePath, '/lib/preview/next-script.tsx');
+
+  return content
+    .replace(/from\s+['"]@\/([^'"]+)['"]/g, (_match, importPath: string) => {
+      const candidates = [
+        importPath,
+        `${importPath}.ts`,
+        `${importPath}.tsx`,
+        `${importPath}.js`,
+        `${importPath}.jsx`,
+        `${importPath}.css`,
+        joinPath(importPath, 'index.ts'),
+        joinPath(importPath, 'index.tsx'),
+        joinPath(importPath, 'index.js'),
+        joinPath(importPath, 'index.jsx')
+      ];
+      const target = candidates.find((candidate) => knownFiles.has(candidate));
+      if (!target) {
+        return `from '@/${importPath}'`;
+      }
+      return `from '${resolveAliasTarget(importPath, sourcePath, `/${target}`)}'`;
+    })
+    .replace(/from\s+['"]next\/link['"]/g, `from '${linkShimPath}'`)
+    .replace(/from\s+['"]next\/image['"]/g, `from '${imageShimPath}'`)
+    .replace(/from\s+['"]next\/script['"]/g, `from '${scriptShimPath}'`);
+}
+
+function sanitizePreviewCss(content: string) {
+  return content
+    .replace(/^\s*@tailwind[^\n]*$/gm, '')
+    .replace(/@apply\s+border-slate-200\s+dark:border-slate-700;/g, 'border-color: rgba(148, 163, 184, 0.22);')
+    .replace(/@apply\s+[^;]+;/g, '')
+    .trim();
+}
+
+const PREVIEW_EXTERNAL_IMPORTS: Record<string, string> = {
+  react: 'https://esm.sh/react@18.2.0',
+  'react-dom/client': 'https://esm.sh/react-dom@18.2.0/client',
+  'react/jsx-runtime': 'https://esm.sh/react@18.2.0/jsx-runtime',
+  'react/jsx-dev-runtime': 'https://esm.sh/react@18.2.0/jsx-dev-runtime',
+  'lucide-react': 'https://esm.sh/lucide-react@0.468.0',
+  clsx: 'https://esm.sh/clsx@2.1.1',
+  'tailwind-merge': 'https://esm.sh/tailwind-merge@2.6.0'
+};
+
+function normalizePreviewFiles(files: FileTree) {
+  return new Map<string, string>(
+    Object.entries(files).map(([filePath, content]) => [filePath.startsWith('/') ? filePath : `/${filePath}`, content])
+  );
+}
+
+function resolvePreviewFile(specifier: string, sourcePath: string, files: Map<string, string>) {
+  const nextShims: Record<string, string> = {
+    'next/link': '/lib/preview/next-link.tsx',
+    'next/image': '/lib/preview/next-image.tsx',
+    'next/script': '/lib/preview/next-script.tsx'
+  };
+
+  if (specifier in nextShims) {
+    return nextShims[specifier];
+  }
+
+  const sourceDir = dirname(sourcePath);
+  const basePath = specifier.startsWith('@/') ? `/${specifier.slice(2)}` : specifier.startsWith('.') ? joinPath(sourceDir, specifier) : specifier;
+  const candidates = [
+    basePath,
+    `${basePath}.ts`,
+    `${basePath}.tsx`,
+    `${basePath}.js`,
+    `${basePath}.jsx`,
+    `${basePath}.css`,
+    joinPath(basePath, 'index.ts'),
+    joinPath(basePath, 'index.tsx'),
+    joinPath(basePath, 'index.js'),
+    joinPath(basePath, 'index.jsx')
+  ];
+
+  return candidates.find((candidate) => files.has(candidate)) ?? null;
+}
+
+function createCssInjectionModule(filePath: string, source: string) {
+  const styleId = `codedai-preview-${filePath.replace(/[^a-z0-9_-]/gi, '-')}`;
+  return `const css = ${JSON.stringify(sanitizePreviewCss(source))};
+if (!document.getElementById(${JSON.stringify(styleId)})) {
+  const style = document.createElement('style');
+  style.id = ${JSON.stringify(styleId)};
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+export default css;
+`;
+}
+
+async function createLocalPreviewDocument(files: FileTree) {
+  const ts = await import('typescript');
+  const runtimeFiles = normalizePreviewFiles(files);
+  runtimeFiles.set('/lib/preview/next-link.tsx', previewLinkShim);
+  runtimeFiles.set('/lib/preview/next-image.tsx', previewImageShim);
+  runtimeFiles.set('/lib/preview/next-script.tsx', previewScriptShim);
+
+  const blobUrls = new Map<string, string>();
+
+  const compileModule = (filePath: string): string => {
+    const cached = blobUrls.get(filePath);
+    if (cached) return cached;
+
+    const source = runtimeFiles.get(filePath);
+    if (source == null) {
+      throw new Error(`Missing preview module: ${filePath}`);
+    }
+
+    const output =
+      extension(filePath) === '.css'
+        ? createCssInjectionModule(filePath, source)
+        : ts.transpileModule(source, {
+            compilerOptions: {
+              jsx: ts.JsxEmit.ReactJSX,
+              module: ts.ModuleKind.ESNext,
+              target: ts.ScriptTarget.ES2020
+            },
+            fileName: filePath
+          }).outputText;
+
+    const rewritten = output
+      .replace(/(from\s*['"])([^'"]+)(['"])/g, (_match, start: string, specifier: string, end: string) => {
+        const localFile = resolvePreviewFile(specifier, filePath, runtimeFiles);
+        const resolved = localFile ? compileModule(localFile) : PREVIEW_EXTERNAL_IMPORTS[specifier] ?? `https://esm.sh/${specifier}`;
+        return `${start}${resolved}${end}`;
+      })
+      .replace(/(import\s*\(\s*['"])([^'"]+)(['"]\s*\))/g, (_match, start: string, specifier: string, end: string) => {
+        const localFile = resolvePreviewFile(specifier, filePath, runtimeFiles);
+        const resolved = localFile ? compileModule(localFile) : PREVIEW_EXTERNAL_IMPORTS[specifier] ?? `https://esm.sh/${specifier}`;
+        return `${start}${resolved}${end}`;
+      });
+
+    const url = URL.createObjectURL(new Blob([rewritten], { type: 'text/javascript' }));
+    blobUrls.set(filePath, url);
+    return url;
+  };
+
+  const pageModule = resolvePreviewFile('./app/page', '/index.tsx', runtimeFiles) ?? '/app/page.tsx';
+  const layoutModule = resolvePreviewFile('./app/layout', '/index.tsx', runtimeFiles);
+  const pageModuleUrl = compileModule(pageModule);
+  const layoutImportLine = layoutModule ? `import RootLayout from '${compileModule(layoutModule)}';` : '';
+  const entryModule = `import React from '${PREVIEW_EXTERNAL_IMPORTS.react}';
+import { createRoot } from '${PREVIEW_EXTERNAL_IMPORTS['react-dom/client']}';
+import Page from '${pageModuleUrl}';
+${layoutImportLine}
+
+document.documentElement.classList.add('dark');
+function unwrapLayout(node) {
+  if (!React.isValidElement(node)) return node;
+
+  const typeName = typeof node.type === 'string' ? node.type.toLowerCase() : '';
+  if (typeName === 'html' || typeName === 'head') {
+    return React.createElement(React.Fragment, null, React.Children.map(node.props.children, unwrapLayout));
+  }
+  if (typeName === 'body') {
+    return React.createElement(React.Fragment, null, React.Children.map(node.props.children, unwrapLayout));
+  }
+
+  if (!node.props || !node.props.children) {
+    return node;
+  }
+
+  return React.cloneElement(
+    node,
+    node.props,
+    React.Children.map(node.props.children, unwrapLayout)
+  );
+}
+
+const pageElement = React.createElement(Page);
+const appElement =
+  typeof RootLayout === 'function'
+    ? unwrapLayout(React.createElement(RootLayout, null, pageElement))
+    : pageElement;
+
+createRoot(document.getElementById('root')).render(appElement);
+`;
+  const entryUrl = URL.createObjectURL(new Blob([entryModule], { type: 'text/javascript' }));
+  const cssText = sanitizePreviewCss(runtimeFiles.get('/app/globals.css') ?? fallbackStyles) || fallbackStyles;
+
+  return {
+    html: `<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>${cssText}</style>
+    <script>
+      window.addEventListener('error', function (event) {
+        parent.postMessage({ type: 'codedai-preview-error', message: event.message }, '*');
+      });
+      window.addEventListener('unhandledrejection', function (event) {
+        const reason = event.reason;
+        parent.postMessage(
+          { type: 'codedai-preview-error', message: reason && reason.message ? reason.message : String(reason) },
+          '*'
+        );
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="${entryUrl}"></script>
+  </body>
+</html>`,
+    revoke() {
+      URL.revokeObjectURL(entryUrl);
+      blobUrls.forEach((url) => URL.revokeObjectURL(url));
+    }
+  };
+}
+
 function sortFilePaths(files: FileTree) {
   return Object.keys(files).sort((a, b) => {
     const priority = (path: string) => {
@@ -117,6 +441,7 @@ function detectPreviewIssues(files: FileTree) {
 }
 
 function mapFilesForSandpack(files: FileTree): SandpackFiles {
+  const knownFiles = new Set(Object.keys(files));
   const sandpackFiles: SandpackFiles = {
     '/index.js': {
       code: `import React from 'react';
@@ -129,8 +454,7 @@ createRoot(document.getElementById('root')).render(<App />);
     },
     '/styles.css': {
       code:
-        files['app/globals.css'] ??
-        fallbackStyles
+        sanitizePreviewCss(files['app/globals.css'] ?? fallbackStyles) || fallbackStyles
     },
     '/App.tsx': {
       code: `import Page from './app/page';
@@ -140,16 +464,30 @@ export default function App(){
 }
 `
     },
+    '/lib/preview/next-link.tsx': {
+      code: previewLinkShim
+    },
+    '/lib/preview/next-image.tsx': {
+      code: previewImageShim
+    },
+    '/lib/preview/next-script.tsx': {
+      code: previewScriptShim
+    },
     '/app/page.tsx': {
       code:
-        files['app/page.tsx'] ??
+        rewritePreviewImports(
+          '/app/page.tsx',
+          files['app/page.tsx'] ??
         `export default function Page(){return <main style={{padding:24}}>No page generated yet.</main>;}`
+        ,
+          knownFiles
+        )
     }
   };
 
   for (const [path, content] of Object.entries(files)) {
     if (path === 'app/page.tsx' || path === 'app/globals.css') continue;
-    sandpackFiles[`/${path}`] = { code: content };
+    sandpackFiles[`/${path}`] = { code: rewritePreviewImports(`/${path}`, content, knownFiles) };
   }
 
   return sandpackFiles;
@@ -206,12 +544,6 @@ export function PreviewPanel({
       return;
     }
 
-    const previewMarkup = iframe.contentDocument?.documentElement?.outerHTML;
-    if (!previewMarkup) {
-      toast.error('Could not open preview in a new tab');
-      return;
-    }
-
     const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
     if (!previewWindow) {
       toast.error('Pop-up blocked while opening preview');
@@ -219,7 +551,7 @@ export function PreviewPanel({
     }
 
     previewWindow.document.open();
-    previewWindow.document.write(`<!doctype html>${previewMarkup}`);
+    previewWindow.document.write(`<!doctype html>${iframe.contentDocument?.documentElement?.outerHTML ?? ''}`);
     previewWindow.document.close();
   };
 
@@ -291,8 +623,11 @@ export function PreviewPanel({
                   files={sandpackFiles}
                   customSetup={{
                     dependencies: {
+                      clsx: '^2.1.1',
+                      'lucide-react': '^0.468.0',
                       react: '^18.2.0',
-                      'react-dom': '^18.2.0'
+                      'react-dom': '^18.2.0',
+                      'tailwind-merge': '^2.6.0'
                     }
                   }}
                 >
@@ -304,7 +639,7 @@ export function PreviewPanel({
                     showOpenInCodeSandbox={false}
                     showOpenNewtab={false}
                     showRestartButton={false}
-                    showSandpackErrorOverlay={false}
+                    showSandpackErrorOverlay
                   />
                 </SandpackProvider>
               </div>

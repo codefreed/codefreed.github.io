@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { AiRequestSchema, AiResponseSchema } from '@/lib/ai/schema';
+import { AI_MODELS, AiRequestSchema, AiResponseSchema, type AiModel } from '@/lib/ai/schema';
 
 function parseTimeout(raw: string | undefined, fallback: number, max = Number.POSITIVE_INFINITY) {
   const parsed = Number(raw);
@@ -9,11 +9,13 @@ function parseTimeout(raw: string | undefined, fallback: number, max = Number.PO
 }
 
 const OPENAI_TIMEOUT_MS = parseTimeout(process.env.OPENAI_TIMEOUT_MS, 150_000, 180_000);
-const PRIMARY_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-5';
-const FALLBACK_MODEL = process.env.OPENAI_FALLBACK_MODEL?.trim() || 'gpt-4.1';
+const DEFAULT_PRIMARY_MODEL: AiModel = 'gpt-4.1';
+const PRIMARY_MODEL = ((process.env.OPENAI_MODEL?.trim() as AiModel | undefined) || DEFAULT_PRIMARY_MODEL);
+const FALLBACK_MODEL = ((process.env.OPENAI_FALLBACK_MODEL?.trim() as AiModel | undefined) || 'gpt-5');
 const TIMEOUT_FALLBACK_MODEL = process.env.OPENAI_TIMEOUT_FALLBACK_MODEL?.trim() || 'gpt-4.1-mini';
 const TIMEOUT_FALLBACK_TIMEOUT_MS = parseTimeout(process.env.OPENAI_TIMEOUT_FALLBACK_MS, 90_000, 120_000);
 export const maxDuration = 300;
+const SUPPORTED_MODELS = new Set<string>(AI_MODELS);
 
 const systemPrompt = `You are CodedAI, a production web app code generator.
 Return ONLY JSON and no extra text.
@@ -102,15 +104,16 @@ async function createCompletion(client: OpenAI, content: string, model: string, 
   }
 }
 
-async function createCompletionWithFallback(client: OpenAI, content: string) {
+async function createCompletionWithFallback(client: OpenAI, content: string, requestedModel: AiModel) {
   try {
-    return await createCompletion(client, content, PRIMARY_MODEL);
+    return await createCompletion(client, content, requestedModel);
   } catch (error) {
     if (isModelResolutionError(error)) {
-      return createCompletion(client, content, FALLBACK_MODEL);
+      const fallbackModel = requestedModel === FALLBACK_MODEL ? PRIMARY_MODEL : FALLBACK_MODEL;
+      return createCompletion(client, content, fallbackModel);
     }
 
-    if (isTimeoutError(error) && TIMEOUT_FALLBACK_MODEL !== PRIMARY_MODEL) {
+    if (isTimeoutError(error) && TIMEOUT_FALLBACK_MODEL !== requestedModel) {
       return createCompletion(client, content, TIMEOUT_FALLBACK_MODEL, TIMEOUT_FALLBACK_TIMEOUT_MS);
     }
 
@@ -165,14 +168,16 @@ export async function POST(req: Request) {
 
     const client = new OpenAI({ apiKey, maxRetries: 0 });
     const userPayload = buildUserPayload(parsed.data);
+    const selectedModel =
+      parsed.data.model && SUPPORTED_MODELS.has(parsed.data.model) ? parsed.data.model : PRIMARY_MODEL;
 
-    let raw = await createCompletionWithFallback(client, userPayload);
+    let raw = await createCompletionWithFallback(client, userPayload, selectedModel);
     let json: unknown;
 
     try {
       json = JSON.parse(raw);
     } catch {
-      raw = await createCompletionWithFallback(client, `${userPayload}\n\nReturn ONLY valid JSON. No commentary.`);
+      raw = await createCompletionWithFallback(client, `${userPayload}\n\nReturn ONLY valid JSON. No commentary.`, selectedModel);
       json = JSON.parse(raw);
     }
 
@@ -180,7 +185,8 @@ export async function POST(req: Request) {
     if (!validated.success) {
       raw = await createCompletionWithFallback(
         client,
-        `${userPayload}\n\nThe previous answer was invalid. Return ONLY valid JSON matching schema.`
+        `${userPayload}\n\nThe previous answer was invalid. Return ONLY valid JSON matching schema.`,
+        selectedModel
       );
       json = JSON.parse(raw);
       const secondValidated = AiResponseSchema.safeParse(json);

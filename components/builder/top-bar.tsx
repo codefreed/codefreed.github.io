@@ -17,8 +17,8 @@ export function TopBar({
   const { projectName, setProjectName, isSaving, lastSavedAt } = useBuilderStore();
 
   return (
-    <header className="glass noise-overlay flex items-center justify-between rounded-3xl p-3">
-      <div className="flex items-center gap-3">
+    <header className="glass noise-overlay flex flex-col gap-3 rounded-3xl p-3 xl:flex-row xl:items-center xl:justify-between">
+      <div className="flex flex-wrap items-center gap-3">
         <input
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
@@ -28,7 +28,7 @@ export function TopBar({
           {isSaving ? 'Saving...' : lastSavedAt ? `Saved ${new Date(lastSavedAt).toLocaleTimeString()}` : 'Not saved yet'}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button variant="ghost" size="sm">
           <Undo2 className="mr-1 h-4 w-4" /> Undo
         </Button>

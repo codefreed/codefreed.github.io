@@ -3,17 +3,19 @@
 import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
 import { type ChatMessage, type FileTree, type VersionSnapshot } from '@/types/project';
-import type { AiResponsePayload } from '@/lib/ai/schema';
+import type { AiModel, AiResponsePayload } from '@/lib/ai/schema';
 
 interface BuilderState {
   projectId: string;
   projectName: string;
+  selectedModel: AiModel;
   files: FileTree;
   versions: VersionSnapshot[];
   messages: ChatMessage[];
   isSaving: boolean;
   lastSavedAt?: number;
   setProjectName: (name: string) => void;
+  setSelectedModel: (model: AiModel) => void;
   loadProject: (params: {
     projectId: string;
     projectName: string;
@@ -261,11 +263,13 @@ const initialVersion: VersionSnapshot = {
 export const useBuilderStore = create<BuilderState>((set, get) => ({
   projectId: 'local-project',
   projectName: 'Untitled Project',
+  selectedModel: 'gpt-4.1',
   files: starterFiles,
   versions: [initialVersion],
   messages: [],
   isSaving: false,
   setProjectName: (name) => set({ projectName: name }),
+  setSelectedModel: (model) => set({ selectedModel: model }),
   loadProject: ({ projectId, projectName, files, versions, messages }) => {
     set({ projectId, projectName, files, versions, messages });
   },
@@ -310,6 +314,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
     set({
       projectId: 'local-project',
       projectName: 'Untitled Project',
+      selectedModel: 'gpt-4.1',
       files: starterFiles,
       versions: [{ ...initialVersion, createdAt: Date.now() }],
       messages: [],
