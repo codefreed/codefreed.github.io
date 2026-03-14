@@ -66,6 +66,14 @@ export default function LandingPage() {
           <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">Clean public pages and deployment support while auth features are paused.</p>
         </GlassPanel>
       </section>
+
+      <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/20 pt-6 text-sm text-slate-600 dark:text-slate-300">
+        <p>CodeFreed</p>
+        <div className="flex flex-wrap gap-4">
+          <Link href="/privacy">Privacy Policy</Link>
+          <Link href="/contact">Contact</Link>
+        </div>
+      </footer>
     </main>
   );
 }
