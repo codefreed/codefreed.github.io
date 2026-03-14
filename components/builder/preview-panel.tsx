@@ -191,6 +191,38 @@ export function PreviewPanel({
         : 'w-full';
   const filteredFilePaths = filePaths.filter((path) => path.toLowerCase().includes(searchQuery.toLowerCase()));
 
+  const openPreviewInNewTab = () => {
+    const client = previewRef.current?.getClient();
+    const iframe = client?.iframe;
+
+    if (!iframe) {
+      toast.error('Preview is not ready yet');
+      return;
+    }
+
+    const iframeSrc = iframe.getAttribute('src');
+    if (iframeSrc && iframeSrc !== 'about:blank') {
+      window.open(iframeSrc, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const previewMarkup = iframe.contentDocument?.documentElement?.outerHTML;
+    if (!previewMarkup) {
+      toast.error('Could not open preview in a new tab');
+      return;
+    }
+
+    const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!previewWindow) {
+      toast.error('Pop-up blocked while opening preview');
+      return;
+    }
+
+    previewWindow.document.open();
+    previewWindow.document.write(`<!doctype html>${previewMarkup}`);
+    previewWindow.document.close();
+  };
+
   return (
     <>
       <GlassPanel className="h-full">
@@ -211,7 +243,7 @@ export function PreviewPanel({
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => previewRef.current?.getClient()?.dispatch({ type: 'shell/openPreview' })}
+                onClick={openPreviewInNewTab}
               >
                 <ExternalLink className="mr-1 h-4 w-4" /> New Tab
               </Button>

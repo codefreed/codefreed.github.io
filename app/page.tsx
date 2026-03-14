@@ -1,8 +1,47 @@
 import Link from 'next/link';
-import { UploadCloud, Rocket, ShieldCheck } from 'lucide-react';
+import { Bot, LayoutTemplate, Rocket, ShieldCheck, Sparkles, UploadCloud, Wand2 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/glass-panel';
-import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+
+const featureCards = [
+  {
+    title: 'Prompt to Website',
+    copy: 'Describe your business, product, or idea and turn it into a real website draft in minutes.',
+    icon: Sparkles
+  },
+  {
+    title: 'AI Editing Workspace',
+    copy: 'Chat with the builder, refine layouts, upload references, and preview changes without leaving the editor.',
+    icon: Bot
+  },
+  {
+    title: 'Launch Flow',
+    copy: 'Export, connect your stack, and ship to Vercel with a simpler path from concept to live site.',
+    icon: Rocket
+  }
+];
+
+const workflowSteps = [
+  'Start with a prompt, idea, or reference files.',
+  'Let the AI generate pages, sections, and supporting files.',
+  'Preview the site, tweak with chat, and open IDE mode when needed.',
+  'Export or deploy when the project is ready.'
+];
+
+const showcaseCards = [
+  {
+    label: 'Landing Pages',
+    copy: 'Create polished marketing sites for startups, apps, and products.'
+  },
+  {
+    label: 'Portfolio Sites',
+    copy: 'Generate a personal site that feels custom instead of boilerplate.'
+  },
+  {
+    label: 'MVP Frontends',
+    copy: 'Prototype ideas quickly with editable files and instant previews.'
+  }
+];
 
 export default function LandingPage() {
   const primaryLinkClass =
@@ -14,59 +53,146 @@ export default function LandingPage() {
 
   return (
     <main className="relative mx-auto min-h-screen max-w-6xl px-4 py-6">
-      <header className="mb-14 flex items-center justify-between">
-        <div className="glass rounded-full px-4 py-2 text-sm">CodedAI</div>
-        <div className="flex items-center gap-3">
+      <header className="mb-14 flex flex-wrap items-center justify-between gap-4 animate-fadeInUp">
+        <div className="glass rounded-full px-4 py-2 text-sm animate-drift">CodeFreed</div>
+        <nav className="flex flex-wrap items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
+          <Link href="/features">Features</Link>
+          <Link href="/pricing">Pricing</Link>
+          <Link href="/faq">FAQ</Link>
           <ThemeToggle />
           <Link href="/app" className={primaryLinkClass}>
             Open Studio
           </Link>
-        </div>
+        </nav>
       </header>
 
-      <section className="grid gap-8 lg:grid-cols-2">
+      <section className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6 animate-fadeInUp">
-          <h1 className="text-5xl font-semibold leading-tight text-slate-900 dark:text-white">Build and publish your website.</h1>
-          <p className="text-lg text-slate-700 dark:text-slate-300">
-            Edit pages, preview instantly, connect Firebase, and export or deploy from one workspace.
+          <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-4 py-2 text-xs uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-300">
+            <Wand2 className="h-4 w-4" />
+            Free AI Website Generator
+          </div>
+          <h1 className="text-5xl font-semibold leading-tight text-slate-900 dark:text-white md:text-6xl">
+            Build, edit, and launch websites with AI.
+          </h1>
+          <p className="max-w-3xl text-lg text-slate-700 dark:text-slate-300">
+            CodeFreed helps you turn prompts into real websites, refine them with AI chat, and publish faster without
+            a complicated setup.
           </p>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Link href="/app" className={primaryLinkLargeClass}>
               Open Studio
             </Link>
-            <Link href="/app/settings" className={secondaryLinkLargeClass}>
-              Setup Guides
+            <Link href="/features" className={secondaryLinkLargeClass}>
+              Explore Features
             </Link>
+          </div>
+          <div className="grid gap-3 pt-4 sm:grid-cols-3">
+            <div className="glass rounded-2xl p-4 animate-drift">
+              <p className="text-2xl font-semibold text-slate-900 dark:text-white">AI</p>
+              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Generate layouts, sections, and edits from prompts.</p>
+            </div>
+            <div className="glass rounded-2xl p-4 animate-drift animate-delay-1">
+              <p className="text-2xl font-semibold text-slate-900 dark:text-white">Live</p>
+              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Preview your project and iterate in one workspace.</p>
+            </div>
+            <div className="glass rounded-2xl p-4 animate-drift animate-delay-2">
+              <p className="text-2xl font-semibold text-slate-900 dark:text-white">Fast</p>
+              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Move from concept to deployment with fewer steps.</p>
+            </div>
           </div>
         </div>
 
-        <GlassPanel className="animate-float" variant="card">
-          <div className="space-y-4">
-            <p className="text-sm uppercase tracking-wide text-cyan-500">How it works</p>
-            <div className="grid gap-3 text-sm text-slate-700 dark:text-slate-200">
-              <div className="glass rounded-2xl p-4">
-                <ShieldCheck className="mb-2 h-4 w-4" />
-                Build a cleaner public-facing site for launch and review.
-              </div>
-              <div className="glass rounded-2xl p-4">
-                <UploadCloud className="mb-2 h-4 w-4" />
-                Connect Firebase, save your files, and keep shipping.
-              </div>
-              <div className="glass rounded-2xl p-4">
-                <Rocket className="mb-2 h-4 w-4" />
-                Export project zip and deploy to Vercel.
-              </div>
+        <GlassPanel className="animate-float animate-delay-1" variant="card">
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-wide text-cyan-500">How it works</p>
+              <LayoutTemplate className="h-5 w-5 text-cyan-500" />
+            </div>
+            <div className="space-y-3">
+              {workflowSteps.map((step, index) => (
+                <div key={step} className="glass rounded-2xl p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-cyan-500">Step {index + 1}</p>
+                  <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{step}</p>
+                </div>
+              ))}
             </div>
           </div>
         </GlassPanel>
       </section>
 
-      <section className="mt-14 grid gap-4 md:grid-cols-2">
-        <GlassPanel>
+      <section className="mt-16 animate-fadeInUp animate-delay-1">
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm uppercase tracking-wide text-cyan-500">Why CodeFreed</p>
+            <h2 className="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">Built for faster website creation</h2>
+          </div>
+          <Link href="/pricing" className="text-sm text-cyan-600 dark:text-cyan-300">
+            View pricing
+          </Link>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {featureCards.map((card) => (
+            <GlassPanel key={card.title} className="animate-drift">
+              <card.icon className="h-5 w-5 text-cyan-500" />
+              <h3 className="mt-4 text-xl font-semibold text-slate-900 dark:text-white">{card.title}</h3>
+              <p className="mt-2 text-sm leading-7 text-slate-700 dark:text-slate-300">{card.copy}</p>
+            </GlassPanel>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-16 grid gap-4 lg:grid-cols-[1.1fr_0.9fr] animate-fadeInUp animate-delay-2">
+        <GlassPanel className="animate-drift">
+          <p className="text-sm uppercase tracking-wide text-cyan-500">Use Cases</p>
+          <h2 className="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">More than a simple demo builder</h2>
+          <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-300">
+            Use CodeFreed for landing pages, startup websites, creator sites, experiments, and fast MVP frontends.
+          </p>
+          <div className="mt-6 grid gap-3">
+            {showcaseCards.map((item) => (
+              <div key={item.label} className="glass rounded-2xl p-4 animate-drift">
+                <h3 className="font-semibold text-slate-900 dark:text-white">{item.label}</h3>
+                <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{item.copy}</p>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+
+        <GlassPanel className="animate-drift animate-delay-1">
+          <p className="text-sm uppercase tracking-wide text-cyan-500">Launch Ready</p>
+          <div className="mt-4 space-y-4">
+            <div className="glass rounded-2xl p-4 animate-drift">
+              <ShieldCheck className="mb-2 h-4 w-4 text-cyan-500" />
+              <h3 className="font-semibold text-slate-900 dark:text-white">Public site pages included</h3>
+              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                Trust pages, sitemap, robots, and advertising files can live alongside your builder.
+              </p>
+            </div>
+            <div className="glass rounded-2xl p-4 animate-drift animate-delay-1">
+              <UploadCloud className="mb-2 h-4 w-4 text-cyan-500" />
+              <h3 className="font-semibold text-slate-900 dark:text-white">Reference-driven editing</h3>
+              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                Upload files, feed longer prompts, and let the AI use richer context while it edits.
+              </p>
+            </div>
+            <div className="glass rounded-2xl p-4 animate-drift animate-delay-2">
+              <Rocket className="mb-2 h-4 w-4 text-cyan-500" />
+              <h3 className="font-semibold text-slate-900 dark:text-white">Export or deploy</h3>
+              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                Keep your files, export a project zip, or move toward Vercel deployment when you are ready.
+              </p>
+            </div>
+          </div>
+        </GlassPanel>
+      </section>
+
+      <section className="mt-16 grid gap-4 md:grid-cols-2 animate-fadeInUp animate-delay-3">
+        <GlassPanel className="animate-drift">
           <h2 className="text-xl font-semibold">Free</h2>
           <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">Core builder, preview, export, and deploy tools.</p>
         </GlassPanel>
-        <GlassPanel>
+        <GlassPanel className="animate-drift animate-delay-1">
           <h2 className="text-xl font-semibold">Launch Ready</h2>
           <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">Clean public pages and deployment support while auth features are paused.</p>
         </GlassPanel>
@@ -75,6 +201,9 @@ export default function LandingPage() {
       <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/20 pt-6 text-sm text-slate-600 dark:text-slate-300">
         <p>CodeFreed</p>
         <div className="flex flex-wrap gap-4">
+          <Link href="/features">Features</Link>
+          <Link href="/pricing">Pricing</Link>
+          <Link href="/faq">FAQ</Link>
           <Link href="/about">About</Link>
           <Link href="/privacy">Privacy Policy</Link>
           <Link href="/contact">Contact</Link>
