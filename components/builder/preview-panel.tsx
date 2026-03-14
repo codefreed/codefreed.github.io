@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Sandpack, type SandpackFiles } from '@codesandbox/sandpack-react';
-import { Code2, Copy, Eye, FileCode2, Files, FolderTree, MonitorSmartphone, Play, Search, Wand2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Sandpack, SandpackPreview, SandpackProvider, type SandpackFiles, type SandpackPreviewRef } from '@codesandbox/sandpack-react';
+import { Code2, Copy, ExternalLink, Eye, FileCode2, Files, FolderTree, MonitorSmartphone, Play, Search, Wand2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -170,6 +170,7 @@ export function PreviewPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [viewport, setViewport] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [selectedFile, setSelectedFile] = useState('app/page.tsx');
+  const previewRef = useRef<SandpackPreviewRef | null>(null);
 
   useEffect(() => {
     if (!filePaths.length) {
@@ -207,6 +208,13 @@ export function PreviewPanel({
                   <TabsTrigger value="desktop">Desktop</TabsTrigger>
                 </TabsList>
               </Tabs>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => previewRef.current?.getClient()?.dispatch({ type: 'shell/openPreview' })}
+              >
+                <ExternalLink className="mr-1 h-4 w-4" /> New Tab
+              </Button>
               <Button size="sm" onClick={() => setIdeOpen(true)}>
                 <Code2 className="mr-1 h-4 w-4" /> IDE Mode
               </Button>
@@ -246,23 +254,27 @@ export function PreviewPanel({
                     <span>{viewport === 'desktop' ? 'Desktop' : viewport === 'tablet' ? 'Tablet' : 'Mobile'}</span>
                   </div>
                 </div>
-                <Sandpack
+                <SandpackProvider
                   template="react-ts"
                   files={sandpackFiles}
-                  options={{
-                    layout: 'preview',
-                    showNavigator: false,
-                    showTabs: false,
-                    showRefreshButton: true,
-                    editorHeight: 780
-                  }}
                   customSetup={{
                     dependencies: {
                       react: '^18.2.0',
                       'react-dom': '^18.2.0'
                     }
                   }}
-                />
+                >
+                  <SandpackPreview
+                    ref={previewRef}
+                    className="h-[780px]"
+                    showNavigator={false}
+                    showRefreshButton
+                    showOpenInCodeSandbox={false}
+                    showOpenNewtab={false}
+                    showRestartButton={false}
+                    showSandpackErrorOverlay={false}
+                  />
+                </SandpackProvider>
               </div>
             </div>
           </div>
