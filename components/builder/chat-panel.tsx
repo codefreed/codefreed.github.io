@@ -161,7 +161,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
   };
 
   return (
-    <GlassPanel className="relative flex h-full flex-col overflow-hidden">
+    <GlassPanel className="relative flex h-full min-w-0 flex-col overflow-hidden">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-medium">AI Chat</h3>
         <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">
@@ -170,71 +170,80 @@ export function ChatPanel({ projectId }: { projectId: string }) {
         </div>
       </div>
 
-      <div ref={messagesRef} className="flex-1 space-y-3 overflow-y-auto pr-1 pb-64">
+      <div ref={messagesRef} className="flex-1 space-y-4 overflow-y-auto pr-1 pb-64">
         {messages.length === 0 ? (
-          <div className="rounded-2xl bg-white/20 p-3 text-sm text-slate-700 dark:bg-slate-700/40 dark:text-slate-200">
-            Describe your site and I will handle the layout, styling, structure, and supporting files automatically.
+          <div className="flex">
+            <div className="max-w-[88%] rounded-[1.5rem] rounded-bl-md border border-white/30 bg-white/55 px-4 py-3 text-sm text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:bg-slate-700/40 dark:text-slate-200">
+              Describe your site and I will handle the layout, styling, structure, and supporting files automatically.
+            </div>
           </div>
         ) : null}
 
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`rounded-2xl p-3 text-sm ${message.role === 'user' ? 'bg-cyan-500/25 text-slate-900 dark:text-white' : 'bg-white/30 text-slate-800 dark:bg-slate-700/50 dark:text-slate-100'}`}
-          >
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-              {message.role === 'user' ? 'You' : 'CodedAI'}
-            </div>
-            <p className="whitespace-pre-wrap">{message.content}</p>
-            {message.diffSummary?.length ? (
-              <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
-                {message.diffSummary.map((item) => (
-                  <li key={item}>• {item}</li>
-                ))}
-              </ul>
-            ) : null}
-            {message.versionIdApplied ? (
-              <div className="mt-2 flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    rollbackVersion(message.versionIdApplied!);
-                    toast.success('Applied selected version');
-                  }}
-                >
-                  Apply changes
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    const idx = versions.findIndex((v) => v.id === message.versionIdApplied);
-                    const previous = idx > 0 ? versions[idx - 1] : null;
-                    if (!previous) {
-                      toast.error('No previous version available');
-                      return;
-                    }
-                    rollbackVersion(previous.id);
-                    toast.success('Rolled back to previous version');
-                  }}
-                >
-                  Rollback
-                </Button>
+          <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div
+              className={`max-w-[88%] px-4 py-3 text-sm shadow-[0_12px_28px_rgba(15,23,42,0.08)] ${
+                message.role === 'user'
+                  ? 'rounded-[1.5rem] rounded-br-md bg-[linear-gradient(135deg,rgba(38,198,249,0.18),rgba(255,138,26,0.18))] text-slate-900'
+                  : 'rounded-[1.5rem] rounded-bl-md border border-white/30 bg-white/60 text-slate-800 dark:border-white/10 dark:bg-slate-700/50 dark:text-slate-100'
+              }`}
+            >
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                {message.role === 'user' ? 'You' : 'CodeFreed'}
               </div>
-            ) : null}
+              <p className="whitespace-pre-wrap">{message.content}</p>
+              {message.diffSummary?.length ? (
+                <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                  {message.diffSummary.map((item) => (
+                    <li key={item}>• {item}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {message.versionIdApplied ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      rollbackVersion(message.versionIdApplied!);
+                      toast.success('Applied selected version');
+                    }}
+                  >
+                    Apply changes
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      const idx = versions.findIndex((v) => v.id === message.versionIdApplied);
+                      const previous = idx > 0 ? versions[idx - 1] : null;
+                      if (!previous) {
+                        toast.error('No previous version available');
+                        return;
+                      }
+                      rollbackVersion(previous.id);
+                      toast.success('Rolled back to previous version');
+                    }}
+                  >
+                    Rollback
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           </div>
         ))}
 
         {busy ? (
-          <div className="rounded-2xl bg-white/30 p-3 text-sm text-slate-800 dark:bg-slate-700/50 dark:text-slate-100">
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-300">
-              CodedAI
-            </div>
-            <p>{WORKING_STEPS[workingStep]}...</p>
-            <div className="mt-3 flex items-center gap-1.5">
-              <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-500 [animation-delay:-0.3s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-500 [animation-delay:-0.15s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-500" />
+          <div className="flex justify-start">
+            <div className="max-w-[88%] rounded-[1.5rem] rounded-bl-md border border-white/30 bg-white/60 px-4 py-3 text-sm text-slate-800 shadow-[0_12px_28px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-700/50 dark:text-slate-100">
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-300">
+                CodeFreed
+              </div>
+              <p>{WORKING_STEPS[workingStep]}...</p>
+              <div className="mt-3 flex items-center gap-1.5">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-500 [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-500 [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-500" />
+              </div>
             </div>
           </div>
         ) : null}

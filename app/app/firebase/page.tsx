@@ -78,7 +78,7 @@ export default function FirebaseWizardPage() {
       <GlassPanel className="h-full overflow-y-auto">
         <h1 className="text-2xl font-semibold">Custom Firebase for Generated Sites</h1>
         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-          CodedAI app auth uses one shared Firebase config from environment variables. Use this screen only if you want
+          CodeFreed app auth uses one shared Firebase config from environment variables. Use this screen only if you want
           a different Firebase config inside sites you generate.
         </p>
 

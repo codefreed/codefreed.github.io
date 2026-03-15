@@ -2,48 +2,46 @@ import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-
 
 const sections = [
   {
-    title: 'What CodeFreed Does',
+    title: 'What CodeFreed is',
     body: [
-      'CodeFreed is a free AI-powered platform that helps people create websites quickly and easily.',
-      'Our goal is to make website creation accessible to everyone, whether you are a beginner, student, developer, or entrepreneur.',
-      'CodeFreed uses artificial intelligence to help generate websites, tools, and web projects without requiring advanced coding knowledge.'
+      'CodeFreed is a free AI website builder. You describe what you want, and it generates a real, working site — not a mockup, not a template with placeholder text, actual code you can edit and ship.',
+      'The idea behind it is simple: the hardest part of starting a website isn\'t the building, it\'s the blank page. CodeFreed gets you past that in minutes.'
     ]
   },
   {
-    title: 'What You Can Do With CodeFreed',
+    title: 'Who it\'s for',
     body: [
-      'Generate websites using AI',
-      'Build projects quickly',
-      'Experiment with web development',
-      'Launch ideas faster without complicated setup'
+      'People launching something and needing a site fast.',
+      'Developers who want a solid starting point instead of building from scratch.',
+      'Founders validating an idea before committing to a full build.',
+      'Anyone who\'s been putting off making a site because it felt like too much work.'
     ]
   },
   {
-    title: 'Our Mission',
+    title: 'What we\'re trying to do',
     body: [
-      'Our mission is to make website creation free, simple, and accessible to anyone on the internet.',
-      'We believe building things on the web should not require expensive software or advanced technical skills.',
-      'By combining AI with easy-to-use tools, CodeFreed aims to remove barriers that prevent people from creating and sharing ideas online.'
+      'Making a website shouldn\'t require expensive tools, a design background, or a week of setup.',
+      'We built CodeFreed because we wanted something that gets out of your way and lets you focus on what you\'re actually building — not on configuring it.'
     ]
   },
   {
-    title: 'Who CodeFreed Is For',
+    title: 'How it works',
     body: [
-      'Students learning about technology',
-      'Developers testing ideas',
-      'Creators building online projects',
-      'Anyone who wants to make a website quickly'
+      'Start with a prompt describing your site.',
+      'The AI generates the pages, layout, and files.',
+      'Preview it live, refine it through chat, edit the code directly if you want.',
+      'Export or deploy when you\'re happy with it.'
     ]
   },
   {
-    title: 'Continuous Improvement',
+    title: 'Still early',
     body: [
-      'CodeFreed is constantly evolving as new features, tools, and improvements are added to make the platform more powerful and easier to use.'
+      'CodeFreed is actively being built. Things will change, and we\'ll keep improving it as more people use it and give us feedback.'
     ]
   },
   {
-    title: 'Contact',
-    body: ['If you have questions, suggestions, or feedback about CodeFreed, please visit the Contact page on our website.']
+    title: 'Say hi',
+    body: ['If you have feedback, questions, or ran into something broken, head to the Contact page. We actually read it.']
   }
 ];
 
@@ -56,10 +54,9 @@ export default function AboutPage() {
         </div>
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">CodeFreed</p>
             <h1 className="mt-2 text-4xl font-semibold text-slate-900 dark:text-white md:text-5xl">About CodeFreed</h1>
             <p className="mt-3 max-w-3xl text-base text-slate-700 dark:text-slate-300 md:text-lg">
-              CodeFreed is a free AI website generator built to help people create, test, and launch websites faster.
+              A free AI website builder made for people who want to go from idea to live site without the usual friction.
             </p>
           </div>
         </div>

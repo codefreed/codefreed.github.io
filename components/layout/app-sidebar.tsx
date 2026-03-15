@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, FolderKanban, FileCode2, ImageIcon, Flame, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FolderKanban, FileCode2, Home, ImageIcon, Flame, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { CodeFreedLogo, CodeFreedMark } from '@/components/branding/codefreed-logo';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
+  { href: '/', label: 'Home', icon: Home },
   { href: '/app/projects', label: 'Projects', icon: FolderKanban },
   { href: '/app', label: 'Pages', icon: FileCode2 },
   { href: '/app', label: 'Assets', icon: ImageIcon },
@@ -20,12 +22,14 @@ export function AppSidebar({ collapsed, onToggle }: { collapsed: boolean; onTogg
 
   return (
     <GlassPanel variant="sidebar" className="h-full overflow-hidden">
-      <div className={cn('relative mb-4 flex items-center px-2', collapsed ? 'justify-center' : 'justify-between')}>
-        <div className={cn('font-semibold transition-all', collapsed ? 'text-sm' : 'text-lg')}>{collapsed ? 'CA' : 'CodedAI'}</div>
+      <div className={cn('relative mb-4 flex items-center', collapsed ? 'justify-center px-2' : 'justify-between gap-2 px-1')}>
+        <div className={cn('min-w-0 transition-all', collapsed ? 'scale-95' : 'scale-100')}>
+          {collapsed ? <CodeFreedMark className="h-8 w-10" /> : <CodeFreedLogo compact className="max-w-[172px]" />}
+        </div>
         <Button
           variant="ghost"
           size="sm"
-          className="absolute right-0 top-1/2 h-8 w-8 -translate-y-1/2 px-0"
+          className={cn('h-8 w-8 shrink-0 px-0', collapsed && 'absolute right-0 top-1/2 -translate-y-1/2')}
           onClick={onToggle}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >

@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from './button';
 
+const THEME_STORAGE_KEY = 'codefreed-theme-v2';
+
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('codedai-theme');
-    const dark = saved ? saved === 'dark' : true;
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    const dark = saved === 'dark';
     setIsDark(dark);
     document.documentElement.classList.toggle('dark', dark);
   }, []);
@@ -17,7 +19,7 @@ export function ThemeToggle() {
   const toggle = () => {
     const next = !isDark;
     setIsDark(next);
-    localStorage.setItem('codedai-theme', next ? 'dark' : 'light');
+    localStorage.setItem(THEME_STORAGE_KEY, next ? 'dark' : 'light');
     document.documentElement.classList.toggle('dark', next);
   };
 

@@ -3,33 +3,33 @@ import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-
 
 const features = [
   {
-    title: 'AI Website Generation',
-    copy: 'Start from a prompt and generate real files for a website instead of just static mockups.',
+    title: 'Start with a prompt',
+    copy: 'Describe what you want in plain English. CodeFreed generates real working files — not a screenshot, not a mockup, an actual site.',
     icon: Wand2
   },
   {
-    title: 'Conversational Editing',
-    copy: 'Refine the project through chat, request revisions, and keep iterating on a live draft.',
+    title: 'Keep refining with chat',
+    copy: 'Not satisfied with a section? Just say what you\'d change. You can keep going back and forth until it\'s right.',
     icon: Bot
   },
   {
-    title: 'Preview and IDE Modes',
-    copy: 'Switch between preview-first editing and a more code-focused IDE workflow when you need it.',
+    title: 'Preview and code side by side',
+    copy: 'Switch between the live preview and the code editor whenever you want. You\'re never locked into one view.',
     icon: MonitorSmartphone
   },
   {
-    title: 'Project Files',
-    copy: 'Work with actual project files, exports, and versioned changes as the site evolves.',
+    title: 'Your files, your project',
+    copy: 'Everything generates into real files you own. Export them, edit them manually, or keep building inside CodeFreed.',
     icon: FileCode2
   },
   {
-    title: 'Reference Uploads',
-    copy: 'Attach files for extra AI context when you want the builder to follow existing patterns or content.',
+    title: 'Give it more context',
+    copy: 'Upload a reference file, a design, or existing code. The AI uses it to make better edits instead of guessing.',
     icon: UploadCloud
   },
   {
-    title: 'Deployment Path',
-    copy: 'Export your project or move toward deployment with a workflow built around getting sites live.',
+    title: 'Ship when you\'re ready',
+    copy: 'Export a zip or deploy to Vercel. The path from draft to live site doesn\'t require jumping between a dozen tools.',
     icon: Rocket
   }
 ];
@@ -41,10 +41,9 @@ export default function FeaturesPage() {
         <MarketingHeader />
         <div className="mb-10 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">CodeFreed</p>
-            <h1 className="mt-2 text-4xl font-semibold text-slate-900 dark:text-white md:text-5xl">Features</h1>
+            <h1 className="text-4xl font-semibold text-slate-900 dark:text-white md:text-5xl">What CodeFreed can do</h1>
             <p className="mt-3 max-w-3xl text-base text-slate-700 dark:text-slate-300 md:text-lg">
-              Everything in CodeFreed is built around making AI website creation simpler, faster, and more usable.
+              Built for the whole process — from the first idea to a deployed site — not just the first generation.
             </p>
           </div>
         </div>

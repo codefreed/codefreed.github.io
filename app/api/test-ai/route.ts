@@ -11,10 +11,10 @@ export async function POST() {
     const client = new OpenAI({ apiKey });
     const response = await client.responses.create({
       model: 'gpt-4.1-mini',
-      input: 'Reply with: CodedAI test passed.'
+      input: 'Reply with: CodeFreed test passed.'
     });
 
-    const message = response.output_text || 'CodedAI test passed.';
+    const message = response.output_text || 'CodeFreed test passed.';
     return NextResponse.json({ message });
   } catch (error) {
     if (typeof error === 'object' && error !== null && 'status' in error && (error as { status?: number }).status === 401) {

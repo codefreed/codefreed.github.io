@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <linearGradient id="cf-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#26c6f9" />
+      <stop offset="100%" stop-color="#3657d6" />
+    </linearGradient>
+    <linearGradient id="cf-center" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff8a1a" />
+      <stop offset="55%" stop-color="#9a3cc3" />
+      <stop offset="100%" stop-color="#4b43d3" />
+    </linearGradient>
+    <linearGradient id="cf-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b2c" />
+      <stop offset="100%" stop-color="#ffab1f" />
+    </linearGradient>
+  </defs>
+
+  <rect width="160" height="160" rx="36" fill="#ffffff" />
+  <path d="M66 44 20 80l46 36 10-18-23-18 23-18 18-18H66Z" fill="url(#cf-blue)" />
+  <path d="M98 44 72 116h22l26-72H98Z" fill="url(#cf-center)" />
+  <path d="m124 56-10 18 23 18-23 18-10 18h28l46-36-46-36h-8Z" fill="url(#cf-orange)" />
+  <path d="M116 31c4.4 0 8 3.6 8 8s-3.6 8-8 8-8-3.6-8-8 3.6-8 8-8Zm21-14c5 0 9 4 9 9s-4 9-9 9-9-4-9-9 4-9 9-9Z" fill="#9a3cc3" />
+  <path d="M137 14c6 0 11 5 11 11s-5 11-11 11-11-5-11-11 5-11 11-11Z" fill="#ff7b1f" opacity=".9" />
+</svg>

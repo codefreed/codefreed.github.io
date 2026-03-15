@@ -18,7 +18,7 @@ export const maxDuration = 300;
 const SUPPORTED_MODELS = new Set<string>(AI_MODELS);
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
 
-const systemPrompt = `You are CodedAI, a production web app code generator.
+const systemPrompt = `You are CodeFreed, a production web app code generator.
 Return ONLY JSON and no extra text.
 Schema:
 {

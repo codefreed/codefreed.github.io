@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sandpack, SandpackPreview, SandpackProvider, type SandpackFiles, type SandpackPreviewRef } from '@codesandbox/sandpack-react';
-import { Code2, Copy, ExternalLink, FileCode2, Files, FolderTree, MonitorSmartphone, Play, Search, Wand2, X } from 'lucide-react';
+import { Code2, Copy, ExternalLink, FileCode2, Files, FolderTree, MonitorSmartphone, Play, Search, Shuffle, Wand2, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import type { FileTree } from '@/types/project';
@@ -427,6 +426,9 @@ export function PreviewPanel({
       : viewport === 'tablet'
         ? 'mx-auto w-full max-w-[820px]'
         : 'w-full';
+  const cycleViewport = () => {
+    setViewport((current) => (current === 'mobile' ? 'tablet' : current === 'tablet' ? 'desktop' : 'mobile'));
+  };
   const filteredFilePaths = filePaths.filter((filePath) => filePath.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const openPreviewInNewTab = () => {
@@ -463,26 +465,22 @@ export function PreviewPanel({
 
   return (
     <>
-      <GlassPanel className="h-full">
+      <GlassPanel className="h-full min-w-0">
         <div className="flex h-full flex-col">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 className="text-base font-semibold">Live Preview</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">Preview stays visual here. Code only appears in IDE mode.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Tabs value={viewport} onValueChange={(value) => setViewport(value as typeof viewport)}>
-                <TabsList>
-                  <TabsTrigger value="mobile">Mobile</TabsTrigger>
-                  <TabsTrigger value="tablet">Tablet</TabsTrigger>
-                  <TabsTrigger value="desktop">Desktop</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <Button size="sm" variant="secondary" onClick={openPreviewInNewTab}>
-                <ExternalLink className="mr-1 h-4 w-4" /> New Tab
+              <Button size="sm" variant="secondary" onClick={cycleViewport} title={`Viewport: ${viewport}`}>
+                <Shuffle className="h-4 w-4" />
               </Button>
-              <Button size="sm" onClick={() => setIdeOpen(true)}>
-                <Code2 className="mr-1 h-4 w-4" /> IDE Mode
+              <Button size="sm" variant="secondary" onClick={openPreviewInNewTab} title="Open preview in new tab">
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+              <Button size="sm" onClick={() => setIdeOpen(true)} title="Open IDE mode">
+                <Code2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -507,7 +505,7 @@ export function PreviewPanel({
             </div>
           ) : null}
 
-          <div className="flex-1 overflow-auto rounded-[28px] border border-white/15 bg-slate-950/30 p-4">
+          <div className="flex-1 min-w-0 overflow-auto rounded-[28px] border border-white/15 bg-slate-950/30 p-4">
             <div className={previewFrameClassName}>
               <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#0b1020] shadow-[0_30px_80px_rgba(2,8,23,0.45)]">
                 <div className="flex items-center justify-between border-b border-white/10 bg-[#11182b] px-4 py-2 text-xs text-slate-400">
@@ -564,7 +562,7 @@ export function PreviewPanel({
                   <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
                   <span className="h-3 w-3 rounded-full bg-[#27c93f]" />
                 </div>
-                <span>CodedAI IDE</span>
+                <span>CodeFreed IDE</span>
               </div>
               <Button variant="secondary" size="sm" onClick={() => setIdeOpen(false)}>
                 <X className="mr-1 h-4 w-4" /> Close

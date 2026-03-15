@@ -203,7 +203,7 @@ button {
   return (
     <main className="page-shell">
       <section className="hero-card">
-        <div className="eyebrow">CodedAI starter</div>
+        <div className="eyebrow">CodeFreed starter</div>
         <h1 className="hero-title">Start chatting and shape the site from here.</h1>
         <p className="hero-copy">
           Describe the business, the vibe, and what the page should do. The builder can expand this into a fuller
