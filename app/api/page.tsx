@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { Bot, Database, KeyRound, ShieldCheck, Wand2 } from 'lucide-react';
+import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
 
 const apiSections = [
   {
@@ -52,6 +52,7 @@ export default function ApiPage() {
   return (
     <main className="min-h-screen px-4 py-8">
       <section className="mx-auto w-full max-w-6xl">
+        <MarketingHeader />
         <div className="mb-10 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">CodeFreed</p>
@@ -61,9 +62,6 @@ export default function ApiPage() {
               the websites you build.
             </p>
           </div>
-          <Link href="/" className="text-sm text-cyan-600 dark:text-cyan-300">
-            Back to home
-          </Link>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -79,6 +77,7 @@ export default function ApiPage() {
             </article>
           ))}
         </div>
+        <MarketingFooter />
       </section>
     </main>
   );

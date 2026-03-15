@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { Bot, FileCode2, MonitorSmartphone, Rocket, UploadCloud, Wand2 } from 'lucide-react';
+import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
 
 const features = [
   {
@@ -38,6 +38,7 @@ export default function FeaturesPage() {
   return (
     <main className="min-h-screen px-4 py-8">
       <section className="mx-auto w-full max-w-6xl">
+        <MarketingHeader />
         <div className="mb-10 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">CodeFreed</p>
@@ -46,9 +47,6 @@ export default function FeaturesPage() {
               Everything in CodeFreed is built around making AI website creation simpler, faster, and more usable.
             </p>
           </div>
-          <Link href="/" className="text-sm text-cyan-600 dark:text-cyan-300">
-            Back to home
-          </Link>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -60,6 +58,7 @@ export default function FeaturesPage() {
             </article>
           ))}
         </div>
+        <MarketingFooter />
       </section>
     </main>
   );

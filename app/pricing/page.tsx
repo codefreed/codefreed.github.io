@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
 
 const plans = [
   {
@@ -17,6 +17,7 @@ export default function PricingPage() {
   return (
     <main className="min-h-screen px-4 py-8">
       <section className="mx-auto w-full max-w-6xl">
+        <MarketingHeader />
         <div className="mb-10 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">CodeFreed</p>
@@ -25,9 +26,6 @@ export default function PricingPage() {
               CodeFreed is focused on making AI website creation accessible. The core experience is available for free.
             </p>
           </div>
-          <Link href="/" className="text-sm text-cyan-600 dark:text-cyan-300">
-            Back to home
-          </Link>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -43,6 +41,7 @@ export default function PricingPage() {
             </article>
           ))}
         </div>
+        <MarketingFooter />
       </section>
     </main>
   );

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
 
 const sections = [
   {
@@ -51,6 +51,9 @@ export default function AboutPage() {
   return (
     <main className="min-h-screen">
       <section className="border-b border-white/15 px-4 py-6">
+        <div className="mx-auto w-full max-w-6xl">
+          <MarketingHeader />
+        </div>
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">CodeFreed</p>
@@ -59,9 +62,6 @@ export default function AboutPage() {
               CodeFreed is a free AI website generator built to help people create, test, and launch websites faster.
             </p>
           </div>
-          <Link href="/" className="text-sm text-cyan-600 dark:text-cyan-300">
-            Back to home
-          </Link>
         </div>
       </section>
 
@@ -77,6 +77,9 @@ export default function AboutPage() {
               </div>
             </article>
           ))}
+        </div>
+        <div className="mx-auto mt-10 w-full max-w-6xl">
+          <MarketingFooter />
         </div>
       </section>
     </main>

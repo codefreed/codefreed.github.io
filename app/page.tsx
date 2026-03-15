@@ -43,6 +43,30 @@ const showcaseCards = [
   }
 ];
 
+const comparisonCards = [
+  {
+    title: 'Chat-first editing',
+    copy: 'Keep refining the same project through conversation instead of relying on a single one-shot generation.'
+  },
+  {
+    title: 'Model choice in the builder',
+    copy: 'Switch between GPT-4.1, GPT-5, and Gemini from the AI selector as your project changes.'
+  },
+  {
+    title: 'Workspace around the output',
+    copy: 'Preview, IDE mode, file attachments, imports, exports, and deploy helpers all sit around the generation flow.'
+  }
+];
+
+const additionalUseCases = [
+  'Startup landing pages',
+  'Creator portfolios',
+  'Waitlists and product launches',
+  'Internal tool frontends',
+  'Fast MVP website shells',
+  'Marketing refreshes from an existing reference'
+];
+
 export default function LandingPage() {
   const primaryLinkClass =
     'glass inline-flex h-10 items-center justify-center whitespace-nowrap rounded-2xl px-4 py-2 text-sm font-medium text-slate-900 transition-all hover:-translate-y-0.5 hover:shadow-glow dark:text-slate-100';
@@ -58,8 +82,14 @@ export default function LandingPage() {
       <header className="mx-auto mb-6 flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 animate-fadeInUp">
         <div className="glass rounded-full px-4 py-2 text-sm animate-drift">CodeFreed</div>
         <nav className="flex flex-wrap items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
+          <Link href="/ai" className={navLinkClass}>
+            AI
+          </Link>
           <Link href="/features" className={navLinkClass}>
             Features
+          </Link>
+          <Link href="/why-us" className={navLinkClass}>
+            Why Us
           </Link>
           <Link href="/api" className={navLinkClass}>
             API
@@ -198,6 +228,43 @@ export default function LandingPage() {
         </GlassPanel>
       </section>
 
+      <section className="mx-auto mt-8 grid w-full max-w-[1600px] gap-4 lg:grid-cols-[0.95fr_1.05fr] animate-fadeInUp animate-delay-3">
+        <GlassPanel className="animate-drift">
+          <p className="text-sm uppercase tracking-wide text-cyan-500">Compared to simpler builders</p>
+          <h2 className="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">Built for more than a quick first draft</h2>
+          <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-300">
+            If you are comparing CodeFreed with tools like Base44, the biggest difference is the workflow around the result.
+            CodeFreed is built for ongoing editing, model switching, previewing, and exporting instead of stopping at the first generated page.
+          </p>
+          <div className="mt-6 grid gap-3">
+            {comparisonCards.map((item) => (
+              <div key={item.title} className="glass rounded-2xl p-4 animate-drift">
+                <h3 className="font-semibold text-slate-900 dark:text-white">{item.title}</h3>
+                <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{item.copy}</p>
+              </div>
+            ))}
+          </div>
+          <Link href="/why-us" className="mt-6 inline-flex text-sm text-cyan-600 dark:text-cyan-300">
+            Explore why teams pick CodeFreed
+          </Link>
+        </GlassPanel>
+
+        <GlassPanel className="animate-drift animate-delay-1">
+          <p className="text-sm uppercase tracking-wide text-cyan-500">More Use Cases</p>
+          <h2 className="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">Made for a wide range of web projects</h2>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {additionalUseCases.map((item) => (
+              <div key={item} className="glass rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-300 animate-drift">
+                {item}
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/10 p-4 text-sm leading-7 text-slate-700 dark:text-slate-300">
+            Use AI to create the first pass, then keep going with longer prompts, file uploads, live preview, and IDE mode when the project needs more control.
+          </div>
+        </GlassPanel>
+      </section>
+
       <section className="mx-auto mt-8 grid w-full max-w-[1600px] gap-4 md:grid-cols-2 animate-fadeInUp animate-delay-3">
         <GlassPanel className="animate-drift">
           <h2 className="text-xl font-semibold">Free</h2>
@@ -212,11 +279,14 @@ export default function LandingPage() {
       <footer className="mx-auto mt-6 flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-3 border-t border-white/20 pt-6 text-sm text-slate-600 dark:text-slate-300">
         <p>CodeFreed</p>
         <div className="flex flex-wrap gap-4">
+          <Link href="/ai">AI</Link>
           <Link href="/features">Features</Link>
+          <Link href="/why-us">Why Us</Link>
           <Link href="/api">API</Link>
           <Link href="/pricing">Pricing</Link>
           <Link href="/faq">FAQ</Link>
           <Link href="/about">About</Link>
+          <Link href="/terms">Terms</Link>
           <Link href="/privacy">Privacy Policy</Link>
           <Link href="/contact">Contact</Link>
         </div>
