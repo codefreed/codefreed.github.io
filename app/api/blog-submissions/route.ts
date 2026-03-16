@@ -2,13 +2,20 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createPendingSubmission, getBlogSubmissions } from '@/lib/content/blog';
 
+function hasMinimumWords(value: string, minimum: number) {
+  return value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length >= minimum;
+}
+
 const submissionSchema = z.object({
-  title: z.string().min(8).max(140),
-  description: z.string().min(80).max(240),
-  author: z.string().min(2).max(80),
+  title: z.string().refine((value) => hasMinimumWords(value, 5), 'Title needs at least 5 words.'),
+  description: z.string().refine((value) => hasMinimumWords(value, 10), 'Summary needs at least 10 words.'),
+  author: z.string().min(1, 'Author is required.'),
   email: z.string().email(),
-  category: z.string().min(2).max(60),
-  content: z.string().min(500)
+  category: z.string().min(1, 'Category is required.'),
+  content: z.string().refine((value) => hasMinimumWords(value, 10), 'Article body needs at least 10 words.')
 });
 
 function hasValidToken(request: Request) {

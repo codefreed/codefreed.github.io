@@ -112,7 +112,7 @@ export function BlogSubmitForm() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs leading-6 text-slate-600 dark:text-slate-400">
-          Submissions are filtered before publishing. Articles stay private until approved, and short or spammy posts are flagged automatically.
+          Submissions are filtered before publishing. There is no hard upper limit, but very short or spammy posts are still flagged automatically.
         </p>
         <button
           type="submit"
