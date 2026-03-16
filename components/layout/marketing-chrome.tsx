@@ -31,6 +31,9 @@ export function MarketingHeader() {
         <Link href="/blog" className={navLinkClass}>
           Blog
         </Link>
+        <Link href="/blog/submit" className={navLinkClass}>
+          Post Article
+        </Link>
         <Link href="/pricing" className={navLinkClass}>
           Pricing
         </Link>
