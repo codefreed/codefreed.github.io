@@ -40,6 +40,8 @@ cp .env.example .env.local
 - Required for AI:
   - `OPENAI_API_KEY`
   - `GEMINI_API_KEY`
+- Required for blog submissions and moderation:
+  - `BLOG_MODERATION_TOKEN`
 - Required for Firebase client auth/storage/db:
   - `NEXT_PUBLIC_FIREBASE_API_KEY`
   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
@@ -51,6 +53,8 @@ cp .env.example .env.local
   - `FIREBASE_ADMIN_PROJECT_ID`
   - `FIREBASE_ADMIN_CLIENT_EMAIL`
   - `FIREBASE_ADMIN_PRIVATE_KEY`
+
+Blog submissions and moderation also require the Firebase Admin credentials above, because community posts are stored server-side and must be approved before they appear publicly.
 
 4. Start dev server
 

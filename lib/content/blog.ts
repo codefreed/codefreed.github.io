@@ -1,3 +1,10 @@
+import { getFirebaseAdmin } from '@/lib/firebase/admin';
+
+export type BlogSection = {
+  heading: string;
+  paragraphs: string[];
+};
+
 export type BlogPost = {
   slug: string;
   title: string;
@@ -5,13 +12,40 @@ export type BlogPost = {
   author: string;
   publishedAt: string;
   category: string;
-  sections: Array<{
-    heading: string;
-    paragraphs: string[];
-  }>;
+  sections: BlogSection[];
+  source: 'editorial' | 'community';
 };
 
-export const blogPosts: BlogPost[] = [
+export type BlogSubmissionStatus = 'pending' | 'approved' | 'rejected';
+
+export type BlogSubmission = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  author: string;
+  email: string;
+  category: string;
+  content: string;
+  status: BlogSubmissionStatus;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+  reviewNotes: string;
+  flaggedReasons: string[];
+};
+
+const BLOG_COLLECTION = 'blogSubmissions';
+const SPAM_PATTERNS = [
+  /casino/i,
+  /crypto giveaway/i,
+  /loan approval/i,
+  /adult/i,
+  /viagra/i,
+  /seo package/i
+];
+
+export const editorialBlogPosts: BlogPost[] = [
   {
     slug: 'how-ai-website-builders-help-you-launch-faster',
     title: 'How AI Website Builders Help Small Teams Launch Faster',
@@ -20,6 +54,7 @@ export const blogPosts: BlogPost[] = [
     author: 'Teddy Brown',
     publishedAt: '2026-03-14',
     category: 'AI Website Builders',
+    source: 'editorial',
     sections: [
       {
         heading: 'The biggest slowdown is usually not coding',
@@ -73,6 +108,7 @@ export const blogPosts: BlogPost[] = [
     author: 'Teddy Brown',
     publishedAt: '2026-03-12',
     category: 'No-Code Tools',
+    source: 'editorial',
     sections: [
       {
         heading: 'No-code tools have become much more practical',
@@ -126,6 +162,7 @@ export const blogPosts: BlogPost[] = [
     author: 'Teddy Brown',
     publishedAt: '2026-03-10',
     category: 'Web Development Tips',
+    source: 'editorial',
     sections: [
       {
         heading: 'Treat AI output like a first draft, not a final asset',
@@ -173,6 +210,241 @@ export const blogPosts: BlogPost[] = [
   }
 ];
 
-export function getBlogPost(slug: string) {
-  return blogPosts.find((post) => post.slug === slug);
+function wordCount(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+export function buildSubmissionFlags(content: string, description: string) {
+  const flags: string[] = [];
+
+  if (wordCount(content) < 500) {
+    flags.push('Article body is under 500 words.');
+  }
+
+  if (description.trim().length < 80) {
+    flags.push('Summary is too short.');
+  }
+
+  if (SPAM_PATTERNS.some((pattern) => pattern.test(content) || pattern.test(description))) {
+    flags.push('Possible spam or prohibited advertising language detected.');
+  }
+
+  return flags;
+}
+
+export function slugifyBlogTitle(title: string) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 70);
+}
+
+export function parseArticleContent(content: string): BlogSection[] {
+  const lines = content.split(/\r?\n/);
+  const sections: BlogSection[] = [];
+  let currentHeading = 'Article';
+  let currentParagraphs: string[] = [];
+  let currentBuffer: string[] = [];
+
+  const flushParagraph = () => {
+    const paragraph = currentBuffer.join(' ').trim();
+    if (paragraph) {
+      currentParagraphs.push(paragraph);
+    }
+    currentBuffer = [];
+  };
+
+  const flushSection = () => {
+    flushParagraph();
+    if (currentParagraphs.length) {
+      sections.push({
+        heading: currentHeading,
+        paragraphs: currentParagraphs
+      });
+    }
+    currentParagraphs = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushParagraph();
+      continue;
+    }
+
+    if (trimmed.startsWith('## ')) {
+      flushSection();
+      currentHeading = trimmed.replace(/^##\s+/, '').trim() || 'Article';
+      continue;
+    }
+
+    currentBuffer.push(trimmed);
+  }
+
+  flushSection();
+
+  return sections.length
+    ? sections
+    : [
+        {
+          heading: 'Article',
+          paragraphs: content
+            .split(/\n\s*\n/)
+            .map((paragraph) => paragraph.replace(/\s+/g, ' ').trim())
+            .filter(Boolean)
+        }
+      ];
+}
+
+function uniqueSlug(baseSlug: string, existingSlugs: Set<string>) {
+  if (!existingSlugs.has(baseSlug)) {
+    return baseSlug;
+  }
+
+  let attempt = 2;
+  while (existingSlugs.has(`${baseSlug}-${attempt}`)) {
+    attempt += 1;
+  }
+
+  return `${baseSlug}-${attempt}`;
+}
+
+function normalizeSubmissionRecord(id: string, data: Record<string, unknown>): BlogSubmission {
+  return {
+    id,
+    slug: String(data.slug ?? ''),
+    title: String(data.title ?? ''),
+    description: String(data.description ?? ''),
+    author: String(data.author ?? ''),
+    email: String(data.email ?? ''),
+    category: String(data.category ?? 'Community'),
+    content: String(data.content ?? ''),
+    status: (data.status as BlogSubmissionStatus) ?? 'pending',
+    createdAt: String(data.createdAt ?? new Date().toISOString()),
+    updatedAt: String(data.updatedAt ?? new Date().toISOString()),
+    publishedAt: data.publishedAt ? String(data.publishedAt) : null,
+    reviewNotes: String(data.reviewNotes ?? ''),
+    flaggedReasons: Array.isArray(data.flaggedReasons) ? data.flaggedReasons.map((value) => String(value)) : []
+  };
+}
+
+export async function getBlogSubmissions(status?: BlogSubmissionStatus) {
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    return [] as BlogSubmission[];
+  }
+
+  const snapshot = await admin.db.collection(BLOG_COLLECTION).get();
+  const submissions = snapshot.docs
+    .map((doc) => normalizeSubmissionRecord(doc.id, doc.data() as Record<string, unknown>))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  return status ? submissions.filter((item) => item.status === status) : submissions;
+}
+
+export async function getApprovedCommunityPosts(): Promise<BlogPost[]> {
+  const submissions = await getBlogSubmissions('approved');
+
+  return submissions.map((submission) => ({
+    slug: submission.slug,
+    title: submission.title,
+    description: submission.description,
+    author: submission.author,
+    publishedAt: submission.publishedAt ?? submission.createdAt,
+    category: submission.category,
+    sections: parseArticleContent(submission.content),
+    source: 'community'
+  }));
+}
+
+export async function getAllBlogPosts(): Promise<BlogPost[]> {
+  const communityPosts = await getApprovedCommunityPosts();
+
+  return [...editorialBlogPosts, ...communityPosts].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+}
+
+export async function getBlogPost(slug: string) {
+  const editorial = editorialBlogPosts.find((post) => post.slug === slug);
+  if (editorial) {
+    return editorial;
+  }
+
+  const communityPosts = await getApprovedCommunityPosts();
+  return communityPosts.find((post) => post.slug === slug) ?? null;
+}
+
+export async function createPendingSubmission(input: {
+  title: string;
+  description: string;
+  author: string;
+  email: string;
+  category: string;
+  content: string;
+}) {
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    throw new Error('Blog submissions require Firebase Admin credentials on the server.');
+  }
+
+  const now = new Date().toISOString();
+  const existing = await getBlogSubmissions();
+  const existingSlugs = new Set([...editorialBlogPosts.map((post) => post.slug), ...existing.map((post) => post.slug)]);
+  const slug = uniqueSlug(slugifyBlogTitle(input.title), existingSlugs);
+  const flaggedReasons = buildSubmissionFlags(input.content, input.description);
+
+  const docRef = admin.db.collection(BLOG_COLLECTION).doc();
+  const submission: Omit<BlogSubmission, 'id'> = {
+    slug,
+    title: input.title.trim(),
+    description: input.description.trim(),
+    author: input.author.trim(),
+    email: input.email.trim(),
+    category: input.category.trim(),
+    content: input.content.trim(),
+    status: 'pending',
+    createdAt: now,
+    updatedAt: now,
+    publishedAt: null,
+    reviewNotes: '',
+    flaggedReasons
+  };
+
+  await docRef.set(submission);
+
+  return normalizeSubmissionRecord(docRef.id, submission as unknown as Record<string, unknown>);
+}
+
+export async function updateSubmissionStatus(
+  id: string,
+  input: { status: BlogSubmissionStatus; reviewNotes?: string }
+) {
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    throw new Error('Blog moderation requires Firebase Admin credentials on the server.');
+  }
+
+  const docRef = admin.db.collection(BLOG_COLLECTION).doc(id);
+  const snapshot = await docRef.get();
+  if (!snapshot.exists) {
+    throw new Error('Submission not found.');
+  }
+
+  const now = new Date().toISOString();
+  const status = input.status;
+  await docRef.set(
+    {
+      status,
+      updatedAt: now,
+      publishedAt: status === 'approved' ? now : null,
+      reviewNotes: input.reviewNotes?.trim() ?? ''
+    },
+    { merge: true }
+  );
+
+  const next = await docRef.get();
+  return normalizeSubmissionRecord(next.id, next.data() as Record<string, unknown>);
 }

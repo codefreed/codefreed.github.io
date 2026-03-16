@@ -1,8 +1,9 @@
 import type { MetadataRoute } from 'next';
-import { blogPosts } from '@/lib/content/blog';
+import { editorialBlogPosts, getApprovedCommunityPosts } from '@/lib/content/blog';
 import { SITE_URL } from '@/lib/site-config';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const communityPosts = await getApprovedCommunityPosts();
   const staticRoutes = [
     '/',
     '/ai',
@@ -21,7 +22,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
   const routes = [
     ...staticRoutes,
-    ...blogPosts.map((post) => `/blog/${post.slug}`)
+    ...editorialBlogPosts.map((post) => `/blog/${post.slug}`),
+    ...communityPosts.map((post) => `/blog/${post.slug}`)
   ];
 
   return routes.map((route) => ({

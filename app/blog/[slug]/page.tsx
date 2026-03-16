@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
-import { blogPosts, getBlogPost } from '@/lib/content/blog';
+import { editorialBlogPosts, getBlogPost } from '@/lib/content/blog';
 import { buildPageMetadata } from '@/lib/site-config';
+
+export const dynamic = 'force-dynamic';
 
 type BlogPostPageProps = {
   params: {
@@ -11,11 +13,11 @@ type BlogPostPageProps = {
 };
 
 export function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
+  return editorialBlogPosts.map((post) => ({ slug: post.slug }));
 }
 
-export function generateMetadata({ params }: BlogPostPageProps): Metadata {
-  const post = getBlogPost(params.slug);
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+  const post = await getBlogPost(params.slug);
 
   if (!post) {
     return buildPageMetadata({
@@ -32,8 +34,8 @@ export function generateMetadata({ params }: BlogPostPageProps): Metadata {
   });
 }
 
-export default function BlogPostPage({ params }: BlogPostPageProps) {
-  const post = getBlogPost(params.slug);
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  const post = await getBlogPost(params.slug);
 
   if (!post) {
     notFound();
@@ -50,6 +52,8 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             <span>{post.publishedAt}</span>
             <span className="text-slate-400">•</span>
             <span>{post.author}</span>
+            <span className="text-slate-400">•</span>
+            <span>{post.source === 'community' ? 'Community post' : 'Editorial'}</span>
           </div>
           <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-white md:text-5xl">
             {post.title}

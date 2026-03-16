@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { Button } from '@/components/ui/button';
+import { BlogModerationPanel } from '@/components/marketing/blog-moderation-panel';
 import { useBuilderStore } from '@/lib/store/builder-store';
 import { IS_STATIC_EXPORT } from '@/lib/runtime';
 import { ADSENSE_CUSTOM_DOMAIN_NOTICE } from '@/lib/site-config';
@@ -109,6 +110,8 @@ export default function SettingsPage() {
               Set `NEXT_PUBLIC_SITE_URL` to your production custom domain so sitemap, metadata, and canonical URLs match the real published site.
             </div>
           </div>
+
+          <BlogModerationPanel />
 
           <div className="glass rounded-2xl p-4">
             <p className="text-sm font-medium">Danger Zone</p>
