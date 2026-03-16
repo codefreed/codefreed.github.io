@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import { Bot, Database, KeyRound, ShieldCheck, Wand2 } from 'lucide-react';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
+import { buildPageMetadata } from '@/lib/site-config';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'API and Integrations | CodeFreed',
+  description: 'Learn how CodeFreed uses AI providers and how users can bring their own Firebase keys into generated websites.',
+  path: '/api'
+});
 
 const apiSections = [
   {

@@ -7,6 +7,7 @@ import { GlassPanel } from '@/components/ui/glass-panel';
 import { Button } from '@/components/ui/button';
 import { useBuilderStore } from '@/lib/store/builder-store';
 import { IS_STATIC_EXPORT } from '@/lib/runtime';
+import { ADSENSE_CUSTOM_DOMAIN_NOTICE } from '@/lib/site-config';
 
 export default function SettingsPage() {
   const [openAiConfigured, setOpenAiConfigured] = useState(false);
@@ -99,6 +100,14 @@ export default function SettingsPage() {
             <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">
               Gemini is available as an extra provider key for future model/provider switching.
             </p>
+          </div>
+
+          <div className="glass rounded-2xl p-4">
+            <p className="text-sm font-medium">AdSense Readiness</p>
+            <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{ADSENSE_CUSTOM_DOMAIN_NOTICE}</p>
+            <div className="mt-3 rounded-xl bg-amber-500/15 p-3 text-xs text-amber-700 dark:text-amber-200">
+              Set `NEXT_PUBLIC_SITE_URL` to your production custom domain so sitemap, metadata, and canonical URLs match the real published site.
+            </div>
           </div>
 
           <div className="glass rounded-2xl p-4">

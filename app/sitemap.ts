@@ -1,11 +1,13 @@
 import type { MetadataRoute } from 'next';
+import { blogPosts } from '@/lib/content/blog';
+import { SITE_URL } from '@/lib/site-config';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://codefreed.vercel.app';
-  const routes = [
-    '',
+  const staticRoutes = [
+    '/',
     '/ai',
     '/about',
+    '/blog',
     '/contact',
     '/why-us',
     '/privacy',
@@ -17,9 +19,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/login',
     '/app/settings'
   ];
+  const routes = [
+    ...staticRoutes,
+    ...blogPosts.map((post) => `/blog/${post.slug}`)
+  ];
 
   return routes.map((route) => ({
-    url: `${baseUrl}${route}`,
+    url: `${SITE_URL}${route === '/' ? '' : route}`,
     lastModified: new Date()
   }));
 }

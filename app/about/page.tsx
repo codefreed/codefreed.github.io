@@ -1,47 +1,48 @@
+import type { Metadata } from 'next';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
+import { buildPageMetadata } from '@/lib/site-config';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'About | CodeFreed',
+  description: 'Learn the mission behind CodeFreed, the story behind the product, and what makes this free AI website builder different.',
+  path: '/about'
+});
 
 const sections = [
   {
-    title: 'What CodeFreed is',
+    title: 'Our mission',
     body: [
-      'CodeFreed is a free AI website builder. You describe what you want, and it generates a real, working site — not a mockup, not a template with placeholder text, actual code you can edit and ship.',
-      'The idea behind it is simple: the hardest part of starting a website isn\'t the building, it\'s the blank page. CodeFreed gets you past that in minutes.'
+      'CodeFreed exists to make website creation feel less expensive, less intimidating, and much more immediate. We want people to be able to go from a rough idea to a working website draft without needing a design team, a week of setup, or a paid plan just to get started.',
+      'The mission is simple: remove the dead time between inspiration and execution. If someone has an idea for a product page, portfolio, launch site, or experiment, they should be able to build momentum right away instead of getting trapped in tooling.'
     ]
   },
   {
-    title: 'Who it\'s for',
+    title: 'The story behind the product',
     body: [
-      'People launching something and needing a site fast.',
-      'Developers who want a solid starting point instead of building from scratch.',
-      'Founders validating an idea before committing to a full build.',
-      'Anyone who\'s been putting off making a site because it felt like too much work.'
+      'CodeFreed was shaped by a common frustration: most website projects do not fail because the final polish is impossible, they fail because the first draft takes too long. By the time a person has picked tools, chosen a theme, made a layout plan, and written placeholder content, the energy behind the idea has already started to fade.',
+      'That is where AI becomes genuinely useful. Instead of replacing human taste or technical skill, it can remove the slow and repetitive parts of getting started. CodeFreed was built around that belief, with a chat-first workflow that helps people create the first version quickly and then keep improving it instead of throwing it away.'
     ]
   },
   {
-    title: 'What we\'re trying to do',
+    title: 'What makes CodeFreed different',
     body: [
-      'Making a website shouldn\'t require expensive tools, a design background, or a week of setup.',
-      'We built CodeFreed because we wanted something that gets out of your way and lets you focus on what you\'re actually building — not on configuring it.'
+      'A lot of AI builders are optimized for a single impressive generation. CodeFreed is optimized for the reality that good websites usually come from iteration. You generate something, review it, ask for changes, compare versions, upload references, and keep refining the same project until it finally feels right.',
+      'We also care about control. The site you build should not disappear behind a closed interface. That is why preview, file structure, exports, and configuration tools matter here. The goal is not just to impress you for thirty seconds. The goal is to help you produce a site you can actually keep working with.'
     ]
   },
   {
-    title: 'How it works',
+    title: 'Who it is for',
     body: [
-      'Start with a prompt describing your site.',
-      'The AI generates the pages, layout, and files.',
-      'Preview it live, refine it through chat, edit the code directly if you want.',
-      'Export or deploy when you\'re happy with it.'
+      'CodeFreed is for founders validating ideas, creators who need a clean web presence, developers who want a faster starting point, and curious builders who like experimenting with AI-assisted workflows. Some users will stay in the no-code experience, while others will use it as the fastest path to editable project files.',
+      'In every case, the aim is the same: reduce the barrier to shipping something real. If a website builder can save time without taking away ownership, it becomes useful to both beginners and technical users.'
     ]
   },
   {
-    title: 'Still early',
+    title: 'Still improving',
     body: [
-      'CodeFreed is actively being built. Things will change, and we\'ll keep improving it as more people use it and give us feedback.'
+      'CodeFreed is still evolving, and that is intentional. We are continuing to improve the builder, the content around it, and the quality of the generated output as more people use the product and show us where the workflow feels smooth or where it still needs work.',
+      'If you have feedback, questions, or a request for a new capability, the Contact page is the best place to reach out. The product gets better when real builders tell us what would make it more useful.'
     ]
-  },
-  {
-    title: 'Say hi',
-    body: ['If you have feedback, questions, or ran into something broken, head to the Contact page. We actually read it.']
   }
 ];
 

@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import { Boxes, Compass, Eye, FileCode2, GitBranchPlus, Workflow } from 'lucide-react';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
+import { buildPageMetadata } from '@/lib/site-config';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Why Us | CodeFreed',
+  description: 'See what makes CodeFreed different from other AI website builders, including pricing, workflow, model choice, and control.',
+  path: '/why-us'
+});
 
 const reasons = [
   {

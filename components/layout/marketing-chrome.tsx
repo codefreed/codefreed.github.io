@@ -28,6 +28,9 @@ export function MarketingHeader() {
         <Link href="/api" className={navLinkClass}>
           API
         </Link>
+        <Link href="/blog" className={navLinkClass}>
+          Blog
+        </Link>
         <Link href="/pricing" className={navLinkClass}>
           Pricing
         </Link>
@@ -52,12 +55,14 @@ export function MarketingFooter() {
         <Link href="/features">Features</Link>
         <Link href="/why-us">Why Us</Link>
         <Link href="/api">API</Link>
+        <Link href="/blog">Blog</Link>
         <Link href="/pricing">Pricing</Link>
         <Link href="/faq">FAQ</Link>
         <Link href="/about">About</Link>
         <Link href="/terms">Terms</Link>
         <Link href="/privacy">Privacy Policy</Link>
         <Link href="/contact">Contact</Link>
+        <Link href="/sitemap.xml">Sitemap</Link>
       </div>
     </footer>
   );

@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import { Bot, FileCode2, MonitorSmartphone, Rocket, UploadCloud, Wand2 } from 'lucide-react';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
+import { buildPageMetadata } from '@/lib/site-config';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Features | CodeFreed',
+  description: 'Explore CodeFreed features including AI prompting, live preview, file exports, uploads, and launch-ready website workflows.',
+  path: '/features'
+});
 
 const features = [
   {

@@ -88,6 +88,7 @@ Note: CodedAI platform login/auth uses the shared `NEXT_PUBLIC_FIREBASE_*` env v
 
 - Use Export button in builder to download a zip project.
 - Deploy button can generate a one-click Vercel URL from your Git repository URL.
+- Before applying for Google AdSense, deploy the site on your own custom domain and set `NEXT_PUBLIC_SITE_URL` to that domain. Do not submit a `vercel.app` preview or temporary subdomain for review.
 
 ## GitHub Pages
 

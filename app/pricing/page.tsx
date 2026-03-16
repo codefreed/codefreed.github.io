@@ -1,4 +1,12 @@
+import type { Metadata } from 'next';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
+import { buildPageMetadata } from '@/lib/site-config';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Pricing | CodeFreed',
+  description: 'See CodeFreed pricing details and learn why the AI website builder is completely free to use right now.',
+  path: '/pricing'
+});
 
 const plans = [
   {

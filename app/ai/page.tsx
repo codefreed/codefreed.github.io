@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import { Bot, Box, FileUp, Layers3, Sparkles, Wand2 } from 'lucide-react';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
+import { buildPageMetadata } from '@/lib/site-config';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'AI Models and Selector | CodeFreed',
+  description: 'See which AI models CodeFreed supports, how the model selector works, and what the builder AI is designed to do.',
+  path: '/ai'
+});
 
 const modelCards = [
   {

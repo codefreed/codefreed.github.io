@@ -1,4 +1,12 @@
+import type { Metadata } from 'next';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
+import { buildPageMetadata, SITE_URL } from '@/lib/site-config';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Terms of Service | CodeFreed',
+  description: 'Read the CodeFreed terms of service for rules, AI-generated content responsibilities, liability, and service usage.',
+  path: '/terms'
+});
 
 const sections = [
   {
@@ -80,7 +88,7 @@ export default function TermsPage() {
             <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">CodeFreed</p>
             <h1 className="mt-2 text-4xl font-semibold text-slate-900 dark:text-white md:text-5xl">Terms of Service</h1>
             <p className="mt-3 max-w-3xl text-base text-slate-700 dark:text-slate-300 md:text-lg">
-              Last Updated: March 14, 2026. By accessing or using CodeFreed at https://codefreed.vercel.app, you agree to these terms.
+              Last Updated: March 14, 2026. By accessing or using CodeFreed at {SITE_URL}, you agree to these terms.
             </p>
           </div>
         </div>

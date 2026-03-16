@@ -1,4 +1,12 @@
+import type { Metadata } from 'next';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
+import { buildPageMetadata } from '@/lib/site-config';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Privacy Policy | CodeFreed',
+  description: 'Read the CodeFreed privacy policy covering cookies, advertising, data collection, and contact details.',
+  path: '/privacy'
+});
 
 const sections = [
   {

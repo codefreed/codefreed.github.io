@@ -1,24 +1,36 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { Bot, LayoutTemplate, Rocket, ShieldCheck, Sparkles, UploadCloud, Wand2 } from 'lucide-react';
 import { CodeFreedLogo } from '@/components/branding/codefreed-logo';
 import { HomeTitleRotator } from '@/components/marketing/home-title-rotator';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { buildPageMetadata } from '@/lib/site-config';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'CodeFreed | Free AI Website Builder',
+  description:
+    'Build websites with AI for free on CodeFreed. Generate pages, refine them with chat, preview changes live, and export launch-ready files.',
+  path: '/'
+});
 
 const featureCards = [
   {
     title: 'Describe it, get a website',
-    copy: 'Type what you want — a landing page, a portfolio, a product site — and get a real working draft in under a minute.',
+    copy:
+      'Type what you want — a landing page, a portfolio, a product site — and get a real working draft in under a minute. Instead of starting with a theme and bending it into shape, you begin with your idea and let the builder create the structure around it.',
     icon: Sparkles
   },
   {
     title: 'Keep editing with AI',
-    copy: 'Not happy with something? Just say so. You can keep refining the same project through chat instead of starting from scratch.',
+    copy:
+      'Not happy with something? Just say so. You can keep refining the same project through chat instead of starting from scratch, which makes the workflow feel more like collaborating with a fast assistant than generating one disposable result.',
     icon: Bot
   },
   {
     title: 'Ship it',
-    copy: 'Export your files, connect your stack, or push to Vercel. The whole path from idea to live site in one place.',
+    copy:
+      'Export your files, connect your stack, or push to Vercel. The whole path from idea to live site stays in one place, so you do not lose momentum moving between disconnected tools.',
     icon: Rocket
   }
 ];
@@ -33,30 +45,36 @@ const workflowSteps = [
 const showcaseCards = [
   {
     label: 'Landing Pages',
-    copy: 'Get a polished marketing site for your startup or product without hiring a designer.'
+    copy:
+      'Get a polished marketing site for your startup or product without hiring a designer. CodeFreed gives you a fast first draft and enough editing room to make it feel like your brand instead of a stock template.'
   },
   {
     label: 'Portfolio Sites',
-    copy: 'A site that actually looks like you made it — not like everyone else\'s template.'
+    copy:
+      'A site that actually looks like you made it — not like everyone else\'s template. You can steer the tone, section flow, and visual direction until the site feels personal instead of generic.'
   },
   {
     label: 'MVP Frontends',
-    copy: 'Spin up a working frontend fast and validate your idea before you invest more time.'
+    copy:
+      'Spin up a working frontend fast and validate your idea before you invest more time. This is especially useful when you need something credible to demo, test, or share while the rest of the product is still taking shape.'
   }
 ];
 
 const comparisonCards = [
   {
     title: 'You can keep going',
-    copy: 'Most AI builders give you one shot. CodeFreed lets you keep editing the same project through conversation.'
+    copy:
+      'Most AI builders give you one shot. CodeFreed lets you keep editing the same project through conversation, which is much closer to how real website work actually happens after the first draft.'
   },
   {
     title: 'Pick your model',
-    copy: 'Switch between GPT-4.1, GPT-5, and Gemini mid-project. Use whatever works best for what you\'re building.'
+    copy:
+      'Switch between GPT-4.1, GPT-5, and Gemini mid-project. Use whatever works best for what you are building, whether you want steady iteration, bigger creative jumps, or another provider option.'
   },
   {
     title: 'Everything in one place',
-    copy: 'Preview, code editor, file uploads, exports, and deploy helpers — all around the same project, not scattered across tabs.'
+    copy:
+      'Preview, code editor, file uploads, exports, and deploy helpers are all around the same project, not scattered across tabs. That unified workspace helps you move faster because context stays in front of you.'
   }
 ];
 
@@ -96,6 +114,7 @@ export default function LandingPage() {
           <Link href="/features" className={navLinkClass}>Features</Link>
           <Link href="/why-us" className={navLinkClass}>Why Us</Link>
           <Link href="/api" className={navLinkClass}>API</Link>
+          <Link href="/blog" className={navLinkClass}>Blog</Link>
           <Link href="/pricing" className={navLinkClass}>Pricing</Link>
           <Link href="/faq" className={navLinkClass}>FAQ</Link>
           <ThemeToggle />
@@ -122,14 +141,23 @@ export default function LandingPage() {
             <div className="glass rounded-2xl p-4 animate-drift">
               <p className="text-2xl font-semibold text-slate-900 dark:text-white">AI</p>
               <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Generates pages, sections, and edits from plain English.</p>
+              <p className="mt-2 text-xs leading-6 text-slate-600 dark:text-slate-400">
+                You can start simple or give the AI a much richer brief with goals, style notes, and page requirements.
+              </p>
             </div>
             <div className="glass rounded-2xl p-4 animate-drift animate-delay-1">
               <p className="text-2xl font-semibold text-slate-900 dark:text-white">Live</p>
               <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">See your changes as you make them, in the same window.</p>
+              <p className="mt-2 text-xs leading-6 text-slate-600 dark:text-slate-400">
+                Preview and chat stay side by side so it is easier to compare what you asked for with what the project actually became.
+              </p>
             </div>
             <div className="glass rounded-2xl p-4 animate-drift animate-delay-2">
               <p className="text-2xl font-semibold text-slate-900 dark:text-white">Free</p>
               <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">The whole thing. No trial, no credit card, no catch.</p>
+              <p className="mt-2 text-xs leading-6 text-slate-600 dark:text-slate-400">
+                That makes it easier to test ideas and compare builders without paying before you know whether the workflow fits you.
+              </p>
             </div>
           </div>
         </div>
@@ -142,9 +170,18 @@ export default function LandingPage() {
             </div>
             <div className="space-y-3">
               {workflowSteps.map((step, index) => (
-                <div key={step} className="glass rounded-2xl p-4 animate-drift">
+              <div key={step} className="glass rounded-2xl p-4 animate-drift">
                   <p className="text-xs text-cyan-500">Step {index + 1}</p>
                   <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{step}</p>
+                  <p className="mt-2 text-xs leading-6 text-slate-600 dark:text-slate-400">
+                    {index === 0
+                      ? 'The builder is designed to understand natural prompts, so you can write like a person instead of memorizing command syntax.'
+                      : index === 1
+                        ? 'The generated project includes real files and sections, which gives you something concrete to review immediately.'
+                        : index === 2
+                          ? 'You can stay visual in preview or switch into IDE mode when you want deeper control over the structure.'
+                          : 'Once the project is where you want it, you can keep it in CodeFreed or move it into your own workflow.'}
+                  </p>
                 </div>
               ))}
             </div>
@@ -254,6 +291,21 @@ export default function LandingPage() {
         <GlassPanel className="animate-drift">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
+              <h2 className="text-3xl font-semibold text-slate-900 dark:text-white">Read more before you launch</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-700 dark:text-slate-300">
+                Content depth matters for trust, users, and advertising reviews. The CodeFreed blog covers AI website builders, no-code tools,
+                and practical web development advice so the site feels like a real publishing property instead of a thin product shell.
+              </p>
+            </div>
+            <Link href="/blog" className={primaryLinkLargeClass}>Visit the blog</Link>
+          </div>
+        </GlassPanel>
+      </section>
+
+      <section className="mx-auto mt-8 w-full max-w-[1600px] animate-fadeInUp animate-delay-3">
+        <GlassPanel className="animate-drift">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
               <h2 className="text-3xl font-semibold text-slate-900 dark:text-white">CodeFreed vs Base44 on price</h2>
               <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-700 dark:text-slate-300">
                 The fastest comparison is also the clearest one: CodeFreed is completely free right now, while Base44 is a paid or
@@ -304,12 +356,14 @@ export default function LandingPage() {
           <Link href="/features">Features</Link>
           <Link href="/why-us">Why Us</Link>
           <Link href="/api">API</Link>
+          <Link href="/blog">Blog</Link>
           <Link href="/pricing">Pricing</Link>
           <Link href="/faq">FAQ</Link>
           <Link href="/about">About</Link>
           <Link href="/terms">Terms</Link>
           <Link href="/privacy">Privacy Policy</Link>
           <Link href="/contact">Contact</Link>
+          <Link href="/sitemap.xml">Sitemap</Link>
         </div>
       </footer>
     </main>
