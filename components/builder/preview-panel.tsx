@@ -327,6 +327,7 @@ function rewritePreviewImports(sourcePath: string, content: string, knownFiles: 
   const fontShimPath = resolveAliasTarget('lib/preview/next-font', sourcePath, '/lib/preview/next-font.ts');
 
   return content
+    .replace(/import\s+type\s+\{[^}]+\}\s+from\s+['"]next['"];?\s*/g, '')
     .replace(/import\s+['"]@\/([^'"]+)['"]/g, (_match, importPath: string) => {
       const candidates = [
         importPath,

@@ -14,8 +14,27 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   scroll-padding-top: 96px;
+}
+
+html[data-builder-scroll='on'] .studio-scroll-root {
+  height: auto !important;
+  min-height: 100dvh;
+  overflow: visible !important;
+}
+
+html[data-builder-scroll='on'] .studio-scroll-content {
+  overflow: visible !important;
+  min-height: max-content;
+}
+
+html[data-builder-scroll='off'] .studio-scroll-root {
+  overflow: hidden !important;
+}
+
+html[data-builder-scroll='off'] .studio-scroll-content {
+  overflow: hidden !important;
 }
 
 .dark {

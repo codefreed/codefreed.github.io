@@ -8,7 +8,6 @@ import { ChatPanel, fixPreviewWithAi } from '@/components/builder/chat-panel';
 import { TopBar } from '@/components/builder/top-bar';
 import { PreviewPanel } from '@/components/builder/preview-panel';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Button } from '@/components/ui/button';
 import { saveProjectBundle } from '@/lib/project-service';
 import { useBuilderStore } from '@/lib/store/builder-store';
 import { IS_STATIC_EXPORT } from '@/lib/runtime';
@@ -340,25 +339,9 @@ export default function BuilderPage() {
 
   const effectiveChatWidth = clampChatPanelWidth(chatWidth, viewportWidth, isWideLayout);
   const studioColumns = isWideLayout ? `${effectiveChatWidth}px 20px minmax(0, 1fr)` : `${effectiveChatWidth}px minmax(0, 1fr)`;
-  const applySplitPreset = (preset: 'chat' | 'balanced' | 'preview') => {
-    const nextWidth =
-      preset === 'chat'
-        ? isWideLayout
-          ? viewportWidth * 0.4
-          : viewportWidth * 0.46
-        : preset === 'preview'
-          ? isWideLayout
-            ? viewportWidth * 0.24
-            : viewportWidth * 0.28
-          : isWideLayout
-            ? viewportWidth * 0.32
-            : viewportWidth * 0.36;
-
-    setChatWidth(clampChatPanelWidth(nextWidth, viewportWidth, isWideLayout));
-  };
 
   return (
-    <AppShell contentClassName="grid min-h-0 grid-rows-[auto_auto_1fr] gap-3 overflow-hidden">
+    <AppShell contentClassName="grid min-h-0 grid-rows-[auto_1fr] gap-3 overflow-hidden">
       <>
         <input
           ref={folderInputRef}
@@ -415,35 +398,6 @@ export default function BuilderPage() {
           }}
         />
 
-        <div className="glass noise-overlay flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Resize panels</p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Drag the divider on desktop, or use these quick controls to make preview or chat bigger.
-            </p>
-          </div>
-          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
-            <Button size="sm" variant="secondary" onClick={() => applySplitPreset('chat')}>
-              More Chat
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => applySplitPreset('balanced')}>
-              Balanced
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => applySplitPreset('preview')}>
-              More Preview
-            </Button>
-            <input
-              type="range"
-              min={isWideLayout ? 280 : 220}
-              max={isWideLayout ? Math.min(620, Math.max(320, viewportWidth - 520)) : Math.min(420, Math.max(260, viewportWidth - 160))}
-              value={effectiveChatWidth}
-              onChange={(event) => setChatWidth(Number(event.target.value))}
-              aria-label="Resize chat and preview"
-              className="h-2 w-full max-w-[220px] cursor-ew-resize accent-cyan-500"
-            />
-          </div>
-        </div>
-
         <section
           className="grid min-h-0 min-w-0 gap-3 overflow-hidden xl:gap-0"
           style={{
@@ -455,7 +409,6 @@ export default function BuilderPage() {
             ref={splitHandleRef}
             className={`relative hidden lg:flex lg:items-center lg:justify-center ${resizing ? 'bg-cyan-400/10' : ''}`}
             onPointerDown={() => setResizing(true)}
-            onDoubleClick={() => applySplitPreset('balanced')}
             role="separator"
             aria-orientation="vertical"
             aria-label="Resize chat and preview panels"

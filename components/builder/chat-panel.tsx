@@ -174,7 +174,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
 
       <div
         ref={messagesRef}
-        className="flex-1 space-y-4 overflow-y-auto pr-1 pb-52 [-webkit-overflow-scrolling:touch] overscroll-contain sm:pb-64"
+        className="flex-1 space-y-4 overflow-y-auto pr-1 pb-72 [-webkit-overflow-scrolling:touch] overscroll-contain sm:pb-80"
       >
         {messages.length === 0 ? (
           <div className="flex">
@@ -254,7 +254,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
         ) : null}
       </div>
 
-      <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 sm:inset-x-4 sm:bottom-6 lg:bottom-7">
+      <div className="pointer-events-none absolute inset-x-3 bottom-20 z-10 sm:inset-x-4 sm:bottom-20 lg:bottom-24">
         <input
           ref={fileInputRef}
           className="hidden"
@@ -292,7 +292,16 @@ export function ChatPanel({ projectId }: { projectId: string }) {
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-end gap-2 sm:flex-nowrap sm:gap-3">
+          <div className="mb-3">
+            <textarea
+              className="min-h-[92px] w-full resize-none rounded-[1.25rem] border border-white/25 bg-white/45 px-4 py-3 text-base text-slate-900 outline-none placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-400"
+              placeholder="Describe the site you want. The AI will choose the direction, expand the scope, and add what feels necessary..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -319,13 +328,8 @@ export function ChatPanel({ projectId }: { projectId: string }) {
               </select>
             </div>
 
-            <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-              <textarea
-                className="min-h-[60px] w-full resize-none border-0 bg-transparent px-1 py-1.5 text-base text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400 sm:min-h-[72px] sm:py-2"
-                placeholder="Describe the site you want. The AI will choose the direction, expand the scope, and add what feels necessary..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
+            <div className="min-w-0 flex-1 basis-full text-xs text-slate-500 dark:text-slate-400 sm:basis-auto">
+              Attach files, switch models, then send when the prompt feels right.
             </div>
 
             <Button
