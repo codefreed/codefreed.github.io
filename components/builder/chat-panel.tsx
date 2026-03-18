@@ -270,6 +270,9 @@ export function ChatPanel({ projectId }: { projectId: string }) {
             ? 'AI editing needs a server deployment such as Vercel.'
             : 'AI can make mistakes. Check important info.'}
         </p>
+        <p className="pointer-events-auto mb-3 px-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+          Attach files, switch models, then send when the prompt feels right.
+        </p>
         <div className="pointer-events-auto rounded-[1.75rem] border border-white/20 bg-[rgba(255,255,255,0.88)] p-2.5 shadow-[0_24px_70px_rgba(15,23,42,0.22)] backdrop-blur-2xl dark:bg-[rgba(15,23,42,0.88)] sm:rounded-[2rem] sm:p-3">
           {attachments.length ? (
             <div className="mb-3 flex flex-wrap gap-2">
@@ -294,7 +297,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
 
           <div className="mb-3">
             <textarea
-              className="min-h-[92px] w-full resize-none rounded-[1.25rem] border border-white/25 bg-white/45 px-4 py-3 text-base text-slate-900 outline-none placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-400"
+              className="min-h-[132px] w-full resize-none rounded-[1.25rem] border border-white/25 bg-white/45 px-4 py-4 text-base text-slate-900 outline-none placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-400 sm:min-h-[156px]"
               placeholder="Describe the site you want. The AI will choose the direction, expand the scope, and add what feels necessary..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -326,10 +329,6 @@ export function ChatPanel({ projectId }: { projectId: string }) {
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div className="min-w-0 flex-1 basis-full text-xs text-slate-500 dark:text-slate-400 sm:basis-auto">
-              Attach files, switch models, then send when the prompt feels right.
             </div>
 
             <Button
