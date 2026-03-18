@@ -402,22 +402,21 @@ function sortFilePaths(files: FileTree) {
 
 function detectPreviewIssues(files: FileTree) {
   const allContent = Object.values(files).join('\n');
-  const usesNextImports = /from\s+['"]next\//.test(allContent);
   const usesTailwindDirectives = /@tailwind|@apply/.test(allContent);
-  const usesPathAliases = /from\s+['"]@\//.test(allContent);
+  const usesUnsupportedNextFeatures = /from\s+['"]next\/(?:headers|server|cache)['"]/.test(allContent);
   const likelyTailwindClasses =
     /(className|class)\s*=\s*["'`][^"'`]*(?:\b(?:bg|text|px|py|mx|my|grid|flex|rounded|shadow|min-h|max-w|gap|items|justify)-)/.test(
       allContent
     );
 
-  if (!usesNextImports && !usesTailwindDirectives && !usesPathAliases && !likelyTailwindClasses) {
+  if (!usesUnsupportedNextFeatures && !usesTailwindDirectives && !likelyTailwindClasses) {
     return null;
   }
 
   return {
     title: 'Preview compatibility warning',
     message:
-      'This version likely uses Tailwind or Next-specific features that the live preview cannot style correctly yet.'
+      'This version likely uses Tailwind utilities or server-only Next features that the live preview cannot style or run correctly yet.'
   };
 }
 
