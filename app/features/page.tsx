@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Bot, FileCode2, MonitorSmartphone, Rocket, UploadCloud, Wand2 } from 'lucide-react';
+import { Bot, FileCode2, MonitorSmartphone, Rocket, Sparkles, UploadCloud, Wand2 } from 'lucide-react';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
 import { buildPageMetadata } from '@/lib/site-config';
 
@@ -39,6 +39,12 @@ const features = [
     title: 'Ship when you\'re ready',
     copy: 'Export a zip or deploy to Vercel. The path from draft to live site doesn\'t require jumping between a dozen tools.',
     icon: Rocket
+  },
+  {
+    title: 'Prompt Lab',
+    copy:
+      'Start with a guided prompt-builder flow that asks what type of website you want, which features matter, and what style direction fits best. Then chat with AI to improve the prompt before you ever generate the site.',
+    icon: Sparkles
   }
 ];
 

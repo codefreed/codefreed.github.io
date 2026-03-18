@@ -33,7 +33,7 @@ export function AppShell({
 
   return (
     <main
-      className="grid h-screen gap-5 p-5 transition-[grid-template-columns]"
+      className="grid h-[100dvh] gap-3 overflow-hidden p-3 transition-[grid-template-columns] sm:gap-4 sm:p-4 md:gap-5 md:p-5"
       style={{ gridTemplateColumns: `${collapsed ? '86px' : '252px'} minmax(0, 1fr)` }}
     >
       <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />

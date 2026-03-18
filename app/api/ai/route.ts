@@ -1,22 +1,8 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { AI_MODELS, AiRequestSchema, AiResponseSchema, type AiModel } from '@/lib/ai/schema';
+import { AiRequestSchema, AiResponseSchema } from '@/lib/ai/schema';
+import { PRIMARY_MODEL, SUPPORTED_MODELS, isGeminiModel, isTimeoutError, runJsonAi } from '@/lib/ai/provider';
 
-function parseTimeout(raw: string | undefined, fallback: number, max = Number.POSITIVE_INFINITY) {
-  const parsed = Number(raw);
-  const value = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-  return Math.min(value, max);
-}
-
-const OPENAI_TIMEOUT_MS = parseTimeout(process.env.OPENAI_TIMEOUT_MS, 150_000, 180_000);
-const DEFAULT_PRIMARY_MODEL: AiModel = 'gpt-4.1';
-const PRIMARY_MODEL = ((process.env.OPENAI_MODEL?.trim() as AiModel | undefined) || DEFAULT_PRIMARY_MODEL);
-const FALLBACK_MODEL = ((process.env.OPENAI_FALLBACK_MODEL?.trim() as AiModel | undefined) || 'gpt-5');
-const TIMEOUT_FALLBACK_MODEL = process.env.OPENAI_TIMEOUT_FALLBACK_MODEL?.trim() || 'gpt-4.1-mini';
-const TIMEOUT_FALLBACK_TIMEOUT_MS = parseTimeout(process.env.OPENAI_TIMEOUT_FALLBACK_MS, 90_000, 120_000);
 export const maxDuration = 300;
-const SUPPORTED_MODELS = new Set<string>(AI_MODELS);
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
 
 const systemPrompt = `You are CodeFreed, a production web app code generator.
 Return ONLY JSON and no extra text.
@@ -32,11 +18,16 @@ Rules:
 - Produce concise but complete changes.
 - Default to polished, production-quality results even when the user gives a short prompt.
 - Infer tasteful design choices when details are missing and aim for a finished-looking UI, not a bare scaffold.
+- Do not cling to the existing theme or styling direction unless the user explicitly asks you to preserve it.
+- If the request sounds like a fresh build, major redesign, or a different type of site, choose the theme, layout, color direction, and structure you think fit best.
+- Go deeper than the literal prompt when it improves the result. Add supporting sections, extra pages, navigation, trust content, and useful structure when the project would clearly benefit from them.
+- Treat vague prompts as permission to make strong product decisions. It is better to create a thoughtfully expanded site than a thin one-page mockup.
 - Prefer modifying existing files when that keeps the project cleaner, but create new files freely when it improves structure.
 - Support creating, editing, and deleting files across app, components, styles, scripts, assets, and config.
 - You may add JavaScript, TypeScript, JSX, TSX, CSS, JSON, Markdown, and public asset files.
 - Do not wait for the user to ask for extra files, CSS, or JavaScript. Add them automatically whenever they improve quality, maintainability, or visual polish.
 - For non-trivial pages, proactively split large code into reusable components and supporting style files instead of one oversized page file.
+- When the prompt implies a broader site, add additional pages like about, contact, FAQ, pricing, blog, legal, or feature pages whenever they would make the experience feel more complete.
 - Make layouts responsive by default and include thoughtful spacing, typography, hierarchy, and hover/focus states when relevant.
 - Avoid bland default output. Choose a clear visual direction with strong styling and sensible motion when appropriate.
 - The live builder preview does not compile Tailwind utilities or Next.js-only features reliably.
@@ -49,156 +40,10 @@ Rules:
 - Refuse disallowed harmful requests and return safe minimal changes.
 `;
 
-function isModelResolutionError(error: unknown) {
-  if (typeof error !== 'object' || error === null) return false;
-  const status = 'status' in error ? (error as { status?: number }).status : undefined;
-  const message = 'message' in error ? String((error as { message?: string }).message ?? '') : '';
-  return (status === 400 || status === 404) && message.toLowerCase().includes('model');
-}
-
-function isTimeoutError(error: unknown) {
-  if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
-  const name = error.name.toLowerCase();
-  return name.includes('abort') || name.includes('timeout') || message.includes('timed out') || message.includes('abort');
-}
-
-function isGeminiModel(model: string) {
-  return model.startsWith('gemini');
-}
-
-async function createCompletion(client: OpenAI, content: string, model: string, timeoutMs = OPENAI_TIMEOUT_MS) {
-  const controller = new AbortController();
-  let didTimeout = false;
-  const timeoutId = setTimeout(() => {
-    didTimeout = true;
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    const response = await client.responses.create(
-      {
-      model,
-      input: [
-        {
-          role: 'system',
-          content: [{ type: 'input_text', text: systemPrompt }]
-        },
-        {
-          role: 'user',
-          content: [{ type: 'input_text', text: content }]
-        }
-      ],
-      text: { format: { type: 'json_object' } },
-      temperature: 0.3
-      },
-      {
-        signal: controller.signal,
-        timeout: timeoutMs
-      }
-    );
-
-    return response.output_text?.trim() ?? '';
-  } catch (error) {
-    if (didTimeout) {
-      throw new Error(`OpenAI request timed out after ${Math.round(timeoutMs / 1000)}s`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function createGeminiCompletion(content: string, model: string, timeoutMs = OPENAI_TIMEOUT_MS) {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('Missing GEMINI_API_KEY. Add it to .env.local and restart dev server.');
-  }
-
-  const controller = new AbortController();
-  let didTimeout = false;
-  const timeoutId = setTimeout(() => {
-    didTimeout = true;
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: systemPrompt }]
-        },
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: content }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          responseMimeType: 'application/json'
-        }
-      }),
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `Gemini request failed with status ${response.status}`);
-    }
-
-    const data = (await response.json()) as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{ text?: string }>;
-        };
-      }>;
-    };
-
-    const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('').trim() ?? '';
-    if (!text) {
-      throw new Error('Gemini returned an empty response');
-    }
-
-    return text;
-  } catch (error) {
-    if (didTimeout) {
-      throw new Error(`Gemini request timed out after ${Math.round(timeoutMs / 1000)}s`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function createCompletionWithFallback(client: OpenAI, content: string, requestedModel: AiModel) {
-  if (isGeminiModel(requestedModel)) {
-    return createGeminiCompletion(content, requestedModel || DEFAULT_GEMINI_MODEL);
-  }
-
-  try {
-    return await createCompletion(client, content, requestedModel);
-  } catch (error) {
-    if (isModelResolutionError(error)) {
-      const fallbackModel = requestedModel === FALLBACK_MODEL ? PRIMARY_MODEL : FALLBACK_MODEL;
-      return createCompletion(client, content, fallbackModel);
-    }
-
-    if (isTimeoutError(error) && TIMEOUT_FALLBACK_MODEL !== requestedModel) {
-      return createCompletion(client, content, TIMEOUT_FALLBACK_MODEL, TIMEOUT_FALLBACK_TIMEOUT_MS);
-    }
-
-    throw error;
-  }
-}
-
 function buildUserPayload(input: {
   instruction: string;
   files: Record<string, string>;
+  attachments?: Array<{ name: string; content: string }>;
   projectMeta?: { name?: string; id?: string };
   errorContext?: string;
 }) {
@@ -207,6 +52,11 @@ function buildUserPayload(input: {
       instruction: input.instruction,
       projectMeta: input.projectMeta ?? null,
       errorContext: input.errorContext ?? null,
+      creativeGuidance: {
+        preserveExistingThemeOnlyWhenExplicitlyRequested: true,
+        expandScopeWhenUseful: true,
+        addSupportingPagesWhenAppropriate: true
+      },
       previewCapabilities: {
         renderer: 'sandpack-react',
         supportsNextRuntime: false,
@@ -214,6 +64,7 @@ function buildUserPayload(input: {
         supportsPathAliases: false,
         stylingPreference: 'plain-css-or-css-modules'
       },
+      attachments: input.attachments ?? [],
       files: input.files
     },
     null,
@@ -230,13 +81,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid input payload' }, { status: 400 });
     }
 
-    const userPayload = buildUserPayload(parsed.data);
     const selectedModel =
       parsed.data.model && SUPPORTED_MODELS.has(parsed.data.model) ? parsed.data.model : PRIMARY_MODEL;
-    const usingGemini = isGeminiModel(selectedModel);
-    const openAiApiKey = process.env.OPENAI_API_KEY?.trim();
 
-    if (!usingGemini && !openAiApiKey) {
+    if (!isGeminiModel(selectedModel) && !process.env.OPENAI_API_KEY?.trim()) {
       return NextResponse.json(
         {
           error:
@@ -246,7 +94,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (usingGemini && !process.env.GEMINI_API_KEY?.trim()) {
+    if (isGeminiModel(selectedModel) && !process.env.GEMINI_API_KEY?.trim()) {
       return NextResponse.json(
         {
           error: 'Missing GEMINI_API_KEY. Add it to .env.local and restart dev server.'
@@ -255,46 +103,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const client = new OpenAI({ apiKey: openAiApiKey, maxRetries: 0 });
-
-    let raw = await createCompletionWithFallback(client, userPayload, selectedModel);
-    let json: unknown;
-
-    try {
-      json = JSON.parse(raw);
-    } catch {
-      raw = await createCompletionWithFallback(client, `${userPayload}\n\nReturn ONLY valid JSON. No commentary.`, selectedModel);
-      json = JSON.parse(raw);
-    }
-
-    const validated = AiResponseSchema.safeParse(json);
-    if (!validated.success) {
-      raw = await createCompletionWithFallback(
-        client,
-        `${userPayload}\n\nThe previous answer was invalid. Return ONLY valid JSON matching schema.`,
-        selectedModel
-      );
-      json = JSON.parse(raw);
-      const secondValidated = AiResponseSchema.safeParse(json);
-      if (!secondValidated.success) {
-        return NextResponse.json({ error: 'AI returned invalid JSON structure' }, { status: 502 });
+    const payload = buildUserPayload(parsed.data);
+    const response = await runJsonAi({
+      systemPrompt,
+      content: payload,
+      selectedModel,
+      validate: (value) => {
+        const validated = AiResponseSchema.safeParse(value);
+        return validated.success ? { success: true as const, data: validated.data } : { success: false as const };
       }
-      return NextResponse.json(secondValidated.data);
-    }
+    });
 
-    return NextResponse.json(validated.data);
+    return NextResponse.json(response);
   } catch (error) {
-    if (typeof error === 'object' && error !== null && 'status' in error && (error as { status?: number }).status === 401) {
-      return NextResponse.json(
-        { error: 'OpenAI auth failed (401). Check OPENAI_API_KEY and restart the server.' },
-        { status: 401 }
-      );
-    }
     if (error instanceof Error && error.message.toLowerCase().includes('gemini')) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
     if (isTimeoutError(error)) {
       return NextResponse.json(

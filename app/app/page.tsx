@@ -8,6 +8,7 @@ import { ChatPanel, fixPreviewWithAi } from '@/components/builder/chat-panel';
 import { TopBar } from '@/components/builder/top-bar';
 import { PreviewPanel } from '@/components/builder/preview-panel';
 import { useAuth } from '@/components/providers/auth-provider';
+import { Button } from '@/components/ui/button';
 import { saveProjectBundle } from '@/lib/project-service';
 import { useBuilderStore } from '@/lib/store/builder-store';
 import { IS_STATIC_EXPORT } from '@/lib/runtime';
@@ -58,6 +59,18 @@ function isTextWebsiteFile(filePath: string) {
 
 function inferProjectName(fileName: string) {
   return fileName.replace(/\.(zip)$/i, '').trim() || 'Imported Project';
+}
+
+function clampChatPanelWidth(rawWidth: number, viewportWidth: number, wideLayout: boolean) {
+  if (wideLayout) {
+    const minWidth = 280;
+    const maxWidth = Math.min(620, Math.max(320, viewportWidth - 520));
+    return Math.max(minWidth, Math.min(maxWidth, rawWidth));
+  }
+
+  const minWidth = 220;
+  const maxWidth = Math.min(420, Math.max(260, viewportWidth - 160));
+  return Math.max(minWidth, Math.min(maxWidth, rawWidth));
 }
 
 export default function BuilderPage() {
@@ -293,13 +306,7 @@ export default function BuilderPage() {
   }, [chatWidth]);
 
   useEffect(() => {
-    if (!isWideLayout) {
-      return;
-    }
-
-    const minWidth = 280;
-    const maxWidth = Math.min(620, Math.max(320, viewportWidth - 520));
-    setChatWidth((current) => Math.max(minWidth, Math.min(maxWidth, current)));
+    setChatWidth((current) => clampChatPanelWidth(current, viewportWidth, isWideLayout));
   }, [isWideLayout, viewportWidth]);
 
   useEffect(() => {
@@ -315,9 +322,7 @@ export default function BuilderPage() {
 
       const bounds = shell.getBoundingClientRect();
       const nextWidth = event.clientX - bounds.left;
-      const minWidth = 280;
-      const maxWidth = Math.min(620, Math.max(320, bounds.width - 520));
-      setChatWidth(Math.max(minWidth, Math.min(maxWidth, nextWidth)));
+      setChatWidth(clampChatPanelWidth(nextWidth, bounds.width, true));
     };
 
     const onPointerUp = () => setResizing(false);
@@ -333,11 +338,27 @@ export default function BuilderPage() {
 
   if (!mounted) return null;
 
-  const compactChatWidth = Math.min(Math.max(280, Math.round(viewportWidth * 0.34)), 360);
-  const studioColumns = isWideLayout ? `${chatWidth}px 18px minmax(0, 1fr)` : `${compactChatWidth}px minmax(0, 1fr)`;
+  const effectiveChatWidth = clampChatPanelWidth(chatWidth, viewportWidth, isWideLayout);
+  const studioColumns = isWideLayout ? `${effectiveChatWidth}px 20px minmax(0, 1fr)` : `${effectiveChatWidth}px minmax(0, 1fr)`;
+  const applySplitPreset = (preset: 'chat' | 'balanced' | 'preview') => {
+    const nextWidth =
+      preset === 'chat'
+        ? isWideLayout
+          ? viewportWidth * 0.4
+          : viewportWidth * 0.46
+        : preset === 'preview'
+          ? isWideLayout
+            ? viewportWidth * 0.24
+            : viewportWidth * 0.28
+          : isWideLayout
+            ? viewportWidth * 0.32
+            : viewportWidth * 0.36;
+
+    setChatWidth(clampChatPanelWidth(nextWidth, viewportWidth, isWideLayout));
+  };
 
   return (
-    <AppShell contentClassName="grid min-h-0 grid-rows-[auto_1fr] gap-4">
+    <AppShell contentClassName="grid min-h-0 grid-rows-[auto_auto_1fr] gap-3 overflow-hidden">
       <>
         <input
           ref={folderInputRef}
@@ -394,8 +415,37 @@ export default function BuilderPage() {
           }}
         />
 
+        <div className="glass noise-overlay flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Resize panels</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Drag the divider on desktop, or use these quick controls to make preview or chat bigger.
+            </p>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+            <Button size="sm" variant="secondary" onClick={() => applySplitPreset('chat')}>
+              More Chat
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => applySplitPreset('balanced')}>
+              Balanced
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => applySplitPreset('preview')}>
+              More Preview
+            </Button>
+            <input
+              type="range"
+              min={isWideLayout ? 280 : 220}
+              max={isWideLayout ? Math.min(620, Math.max(320, viewportWidth - 520)) : Math.min(420, Math.max(260, viewportWidth - 160))}
+              value={effectiveChatWidth}
+              onChange={(event) => setChatWidth(Number(event.target.value))}
+              aria-label="Resize chat and preview"
+              className="h-2 w-full max-w-[220px] cursor-ew-resize accent-cyan-500"
+            />
+          </div>
+        </div>
+
         <section
-          className="grid min-h-0 min-w-0 gap-3 xl:gap-0"
+          className="grid min-h-0 min-w-0 gap-3 overflow-hidden xl:gap-0"
           style={{
             gridTemplateColumns: studioColumns
           }}
@@ -405,12 +455,18 @@ export default function BuilderPage() {
             ref={splitHandleRef}
             className={`relative hidden lg:flex lg:items-center lg:justify-center ${resizing ? 'bg-cyan-400/10' : ''}`}
             onPointerDown={() => setResizing(true)}
+            onDoubleClick={() => applySplitPreset('balanced')}
             role="separator"
             aria-orientation="vertical"
             aria-label="Resize chat and preview panels"
           >
             <div className="h-full w-px bg-white/10" />
-            <div className="absolute h-24 w-2 cursor-col-resize rounded-full bg-white/20 transition hover:bg-cyan-400/60" />
+            <div className="absolute flex flex-col items-center gap-3">
+              <div className="rounded-full border border-cyan-300/25 bg-slate-950/55 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-200 shadow-[0_10px_24px_rgba(6,182,212,0.16)]">
+                Drag
+              </div>
+              <div className="h-28 w-3 cursor-col-resize rounded-full bg-white/30 transition hover:bg-cyan-400/75" />
+            </div>
           </div>
           <PreviewPanel
             files={files}

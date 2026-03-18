@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sandpack, SandpackPreview, SandpackProvider, type SandpackFiles, type SandpackPreviewRef } from '@codesandbox/sandpack-react';
-import { Code2, Copy, ExternalLink, FileCode2, Files, FolderTree, MonitorSmartphone, Play, Search, Shuffle, Wand2, X } from 'lucide-react';
+import { Check, Code2, Copy, ExternalLink, FileCode2, Files, FolderTree, MonitorSmartphone, PencilLine, Play, RotateCcw, Save, Search, Shuffle, Wand2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
+import { useBuilderStore } from '@/lib/store/builder-store';
 import type { FileTree } from '@/types/project';
 
 const fallbackStyles = `:root {
@@ -407,7 +408,9 @@ export function PreviewPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [viewport, setViewport] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [selectedFile, setSelectedFile] = useState('app/page.tsx');
+  const [editorDraft, setEditorDraft] = useState('');
   const previewRef = useRef<SandpackPreviewRef | null>(null);
+  const updateFileContent = useBuilderStore((state) => state.updateFileContent);
 
   useEffect(() => {
     if (!filePaths.length) {
@@ -420,6 +423,10 @@ export function PreviewPanel({
     }
   }, [filePaths, selectedFile]);
 
+  useEffect(() => {
+    setEditorDraft(selectedFile ? files[selectedFile] ?? '' : '');
+  }, [files, selectedFile]);
+
   const previewFrameClassName =
     viewport === 'mobile'
       ? 'mx-auto w-full max-w-[390px]'
@@ -430,6 +437,16 @@ export function PreviewPanel({
     setViewport((current) => (current === 'mobile' ? 'tablet' : current === 'tablet' ? 'desktop' : 'mobile'));
   };
   const filteredFilePaths = filePaths.filter((filePath) => filePath.toLowerCase().includes(searchQuery.toLowerCase()));
+  const isEditorDirty = selectedFile ? editorDraft !== (files[selectedFile] ?? '') : false;
+
+  const saveEditorDraft = () => {
+    if (!selectedFile) {
+      return;
+    }
+
+    updateFileContent(selectedFile, editorDraft);
+    toast.success(`Updated ${selectedFile}`);
+  };
 
   const openPreviewInNewTab = () => {
     const client = previewRef.current?.getClient();
@@ -440,7 +457,32 @@ export function PreviewPanel({
       return;
     }
 
-    const iframeSrc = iframe.getAttribute('src');
+    try {
+      const nestedFrame = iframe.contentDocument?.querySelector('iframe');
+      const nestedFrameUrl =
+        nestedFrame?.getAttribute('src') ||
+        nestedFrame?.contentWindow?.location?.href ||
+        nestedFrame?.contentDocument?.location?.href;
+
+      if (nestedFrameUrl && nestedFrameUrl !== 'about:blank') {
+        window.open(nestedFrameUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+    } catch {
+      // Ignore nested iframe access issues and continue with other fallbacks.
+    }
+
+    try {
+      const livePreviewUrl = iframe.contentWindow?.location?.href || iframe.contentDocument?.location?.href;
+      if (livePreviewUrl && livePreviewUrl !== 'about:blank') {
+        window.open(livePreviewUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+    } catch {
+      // Continue to markup snapshot fallback.
+    }
+
+    const iframeSrc = iframe.getAttribute('src') || iframe.getAttribute('data-src');
     if (iframeSrc && iframeSrc !== 'about:blank') {
       window.open(iframeSrc, '_blank', 'noopener,noreferrer');
       return;
@@ -505,7 +547,7 @@ export function PreviewPanel({
             </div>
           ) : null}
 
-          <div className="flex-1 min-w-0 overflow-auto rounded-[28px] border border-white/15 bg-slate-950/30 p-4">
+          <div className="flex-1 min-w-0 overflow-auto rounded-[28px] border border-white/15 bg-slate-950/30 p-3 [-webkit-overflow-scrolling:touch] sm:p-4">
             <div className={previewFrameClassName}>
               <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#0b1020] shadow-[0_30px_80px_rgba(2,8,23,0.45)]">
                 <div className="flex items-center justify-between border-b border-white/10 bg-[#11182b] px-4 py-2 text-xs text-slate-400">
@@ -531,9 +573,9 @@ export function PreviewPanel({
                     }
                   }}
                 >
-                  <SandpackPreview
+              <SandpackPreview
                     ref={previewRef}
-                    className="h-[780px]"
+                    className="h-[68vh] min-h-[560px] lg:h-[780px]"
                     showNavigator={false}
                     showRefreshButton
                     showOpenInCodeSandbox={false}
@@ -569,7 +611,7 @@ export function PreviewPanel({
               </Button>
             </div>
 
-            <div className="grid h-[calc(100vh-5.75rem)] grid-cols-[52px_260px_minmax(0,1fr)] overflow-hidden rounded-b-2xl border border-white/10 bg-[#1e1e1e]">
+              <div className="grid h-[calc(100vh-5.75rem)] grid-cols-[52px_260px_minmax(0,1fr)] overflow-hidden rounded-b-2xl border border-white/10 bg-[#1e1e1e]">
               <div className="flex flex-col items-center gap-4 border-r border-white/10 bg-[#181818] py-4 text-slate-400">
                 <button type="button" onClick={() => setIdePane('explorer')} className={idePane === 'explorer' ? 'text-cyan-300' : ''}>
                   <Files className="h-5 w-5" />
@@ -645,29 +687,66 @@ export function PreviewPanel({
                     <FileCode2 className="h-4 w-4 text-sky-300" />
                     <span>{selectedFile || 'No file selected'}</span>
                   </div>
-                  {selectedFile ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(files[selectedFile] ?? '');
-                          toast.success(`Copied ${selectedFile}`);
-                        } catch {
-                          toast.error('Could not copy file');
-                        }
-                      }}
-                    >
-                      <Copy className="mr-1 h-4 w-4" /> Copy
-                    </Button>
-                  ) : null}
+                  <div className="flex items-center gap-2">
+                    {selectedFile ? (
+                      <div className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-slate-400 md:inline-flex">
+                        <PencilLine className="h-3.5 w-3.5" />
+                        Editable
+                      </div>
+                    ) : null}
+                    {selectedFile ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={!isEditorDirty}
+                          onClick={() => setEditorDraft(files[selectedFile] ?? '')}
+                        >
+                          <RotateCcw className="mr-1 h-4 w-4" /> Revert
+                        </Button>
+                        <Button size="sm" onClick={saveEditorDraft} disabled={!isEditorDirty}>
+                          {isEditorDirty ? <Save className="mr-1 h-4 w-4" /> : <Check className="mr-1 h-4 w-4" />}
+                          {isEditorDirty ? 'Save' : 'Saved'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(files[selectedFile] ?? '');
+                              toast.success(`Copied ${selectedFile}`);
+                            } catch {
+                              toast.error('Could not copy file');
+                            }
+                          }}
+                        >
+                          <Copy className="mr-1 h-4 w-4" /> Copy
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className={`min-h-0 ${idePane === 'preview' ? 'grid gap-px bg-white/10 xl:grid-cols-[minmax(0,1fr)_420px]' : 'overflow-auto bg-[#1e1e1e]'}`}>
                   <div className="min-h-0 overflow-auto bg-[#1e1e1e]">
-                    <pre className="min-h-full p-5 font-mono text-[13px] leading-6 text-slate-100">
-                      <code>{selectedFile ? files[selectedFile] : 'No file selected.'}</code>
-                    </pre>
+                    {selectedFile ? (
+                      <textarea
+                        value={editorDraft}
+                        onChange={(event) => setEditorDraft(event.target.value)}
+                        spellCheck={false}
+                        className="min-h-full w-full resize-none border-0 bg-[#1e1e1e] p-5 font-mono text-[13px] leading-6 text-slate-100 outline-none"
+                        onKeyDown={(event) => {
+                          if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+                            event.preventDefault();
+                            saveEditorDraft();
+                          }
+                        }}
+                      />
+                    ) : (
+                      <pre className="min-h-full p-5 font-mono text-[13px] leading-6 text-slate-100">
+                        <code>No file selected.</code>
+                      </pre>
+                    )}
                   </div>
                   {idePane === 'preview' ? (
                     <div className="min-h-0 overflow-hidden bg-[#11182b]">

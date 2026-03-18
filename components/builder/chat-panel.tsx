@@ -33,6 +33,7 @@ async function runAi(params: {
   instruction: string;
   model: AiModel;
   files: Record<string, string>;
+  attachments?: Array<{ name: string; content: string }>;
   errorContext?: string;
 }) {
   const controller = new AbortController();
@@ -86,13 +87,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
 
   const send = async (overrideInstruction?: string, errorContext?: string) => {
     const baseInstruction = (overrideInstruction ?? input).trim();
-    const attachmentContext = attachments.length
-      ? `\n\nAttached reference files:\n${attachments
-          .map((file) => `\nFile: ${file.name}\n\`\`\`\n${file.content}\n\`\`\``)
-          .join('\n')}`
-      : '';
-    const instruction = `${baseInstruction}${attachmentContext}`.trim();
-    if (!instruction) return;
+    if (!baseInstruction && !attachments.length) return;
     if (IS_STATIC_EXPORT) {
       toast.error('AI editing is unavailable on GitHub Pages. Deploy this app to Vercel to enable server-backed AI.');
       return;
@@ -101,15 +96,22 @@ export function ChatPanel({ projectId }: { projectId: string }) {
     try {
       setBusy(true);
       setSaving(true);
-      const userMessageId = addUserMessage(instruction);
+      const visibleMessage = baseInstruction || `Use the ${attachments.length} attached file${attachments.length === 1 ? '' : 's'} as context.`;
+      const userMessageId = addUserMessage(visibleMessage);
       void saveChatMessage(projectId, {
         id: userMessageId,
         role: 'user',
-        content: instruction,
+        content: visibleMessage,
         createdAt: Date.now()
       }).catch(() => undefined);
 
-      const ai = await runAi({ instruction, model: selectedModel, files, errorContext });
+      const ai = await runAi({
+        instruction: baseInstruction || 'Use the attached files as reference and decide the best direction for the site.',
+        model: selectedModel,
+        files,
+        attachments,
+        errorContext
+      });
       const result = applyAiResponse(ai);
 
       const assistantMessage = {
@@ -170,7 +172,10 @@ export function ChatPanel({ projectId }: { projectId: string }) {
         </div>
       </div>
 
-      <div ref={messagesRef} className="flex-1 space-y-4 overflow-y-auto pr-1 pb-64">
+      <div
+        ref={messagesRef}
+        className="flex-1 space-y-4 overflow-y-auto pr-1 pb-52 [-webkit-overflow-scrolling:touch] overscroll-contain sm:pb-64"
+      >
         {messages.length === 0 ? (
           <div className="flex">
             <div className="max-w-[88%] rounded-[1.5rem] rounded-bl-md border border-white/30 bg-white/55 px-4 py-3 text-sm text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:bg-slate-700/40 dark:text-slate-200">
@@ -249,7 +254,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
         ) : null}
       </div>
 
-      <div className="pointer-events-none absolute inset-x-3 bottom-20 z-10 sm:inset-x-4 sm:bottom-24">
+      <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 sm:inset-x-4 sm:bottom-6 lg:bottom-7">
         <input
           ref={fileInputRef}
           className="hidden"
@@ -317,7 +322,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
             <div className="min-w-0 flex-1 basis-full sm:basis-auto">
               <textarea
                 className="min-h-[60px] w-full resize-none border-0 bg-transparent px-1 py-1.5 text-base text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400 sm:min-h-[72px] sm:py-2"
-                placeholder="Ask anything about the site you want to build..."
+                placeholder="Describe the site you want. The AI will choose the direction, expand the scope, and add what feels necessary..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
               />

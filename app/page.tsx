@@ -32,6 +32,12 @@ const featureCards = [
     copy:
       'Export your files, connect your stack, or push to Vercel. The whole path from idea to live site stays in one place, so you do not lose momentum moving between disconnected tools.',
     icon: Rocket
+  },
+  {
+    title: 'Shape the prompt first',
+    copy:
+      'Use Prompt Lab to choose the type of website, pick features, set a visual direction, and let AI write a deeper brief before generation starts. You can even chat with it just to refine the prompt until it feels strong.',
+    icon: Wand2
   }
 ];
 
@@ -197,7 +203,7 @@ export default function LandingPage() {
           </div>
           <Link href="/pricing" className="text-sm text-cyan-600 dark:text-cyan-300">Pricing →</Link>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {featureCards.map((card) => (
             <GlassPanel key={card.title} className="animate-drift">
               <card.icon className="h-5 w-5 text-cyan-500" />

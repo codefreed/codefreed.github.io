@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, FolderKanban, FileCode2, Home, ImageIcon, Flame, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FolderKanban, FileCode2, Home, Flame, Settings, Sparkles } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { CodeFreedLogo, CodeFreedMark } from '@/components/branding/codefreed-logo';
 import { GlassPanel } from '@/components/ui/glass-panel';
@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/app/projects', label: 'Projects', icon: FolderKanban },
-  { href: '/app', label: 'Pages', icon: FileCode2 },
-  { href: '/app', label: 'Assets', icon: ImageIcon },
+  { href: '/app', label: 'Builder', icon: FileCode2 },
+  { href: '/app/prompt-lab', label: 'Prompt Lab', icon: Sparkles },
   { href: '/app/firebase', label: 'Firebase', icon: Flame },
   { href: '/app/settings', label: 'Settings', icon: Settings }
 ];
