@@ -50,10 +50,10 @@ export default function AboutPage() {
   return (
     <main className="min-h-screen">
       <section className="border-b border-white/15 px-4 py-6">
-        <div className="mx-auto w-full max-w-6xl">
+        <div className="mx-auto w-full max-w-[1600px]">
           <MarketingHeader />
         </div>
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
+        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-3">
           <div>
             <h1 className="mt-2 text-4xl font-semibold text-slate-900 dark:text-white md:text-5xl">About CodeFreed</h1>
             <p className="mt-3 max-w-3xl text-base text-slate-700 dark:text-slate-300 md:text-lg">
@@ -64,7 +64,7 @@ export default function AboutPage() {
       </section>
 
       <section className="px-4 py-10 md:py-14">
-        <div className="mx-auto grid w-full max-w-6xl gap-6 md:grid-cols-2">
+        <div className="mx-auto grid w-full max-w-[1600px] gap-6 md:grid-cols-2">
           {sections.map((section) => (
             <article key={section.title} className="glass rounded-3xl p-6 md:p-7">
               <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">{section.title}</h2>
@@ -76,7 +76,7 @@ export default function AboutPage() {
             </article>
           ))}
         </div>
-        <div className="mx-auto mt-10 w-full max-w-6xl">
+        <div className="mx-auto mt-10 w-full max-w-[1600px]">
           <MarketingFooter />
         </div>
       </section>

@@ -79,7 +79,7 @@ const faqs = [
 export default function FaqPage() {
   return (
     <main className="min-h-screen px-4 py-8">
-      <section className="mx-auto w-full max-w-5xl">
+      <section className="mx-auto w-full max-w-[1600px]">
         <MarketingHeader />
         <div className="mb-10 flex flex-wrap items-center justify-between gap-3">
           <div>

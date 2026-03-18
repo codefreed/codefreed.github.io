@@ -12,7 +12,7 @@ export const metadata: Metadata = buildPageMetadata({
 export default function BlogSubmitPage() {
   return (
     <main className="min-h-screen px-4 py-8">
-      <section className="mx-auto w-full max-w-5xl">
+      <section className="mx-auto w-full max-w-[1600px]">
         <MarketingHeader />
         <div className="glass rounded-[2rem] p-6 md:p-8">
           <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">Community Publishing</p>

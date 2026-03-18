@@ -80,10 +80,10 @@ export default function TermsPage() {
   return (
     <main className="min-h-screen">
       <section className="border-b border-white/15 px-4 py-6">
-        <div className="mx-auto w-full max-w-6xl">
+        <div className="mx-auto w-full max-w-[1600px]">
           <MarketingHeader />
         </div>
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
+        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-cyan-500">CodeFreed</p>
             <h1 className="mt-2 text-4xl font-semibold text-slate-900 dark:text-white md:text-5xl">Terms of Service</h1>
@@ -95,7 +95,7 @@ export default function TermsPage() {
       </section>
 
       <section className="px-4 py-10 md:py-14">
-        <div className="mx-auto w-full max-w-6xl space-y-6">
+        <div className="mx-auto w-full max-w-[1600px] space-y-6">
           <section className="glass rounded-3xl p-6 md:p-7">
             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Agreement</h2>
             <div className="mt-4 space-y-3 text-sm leading-7 text-slate-700 dark:text-slate-200 md:text-base">
@@ -116,7 +116,7 @@ export default function TermsPage() {
             </article>
           ))}
         </div>
-        <div className="mx-auto mt-10 w-full max-w-6xl">
+        <div className="mx-auto mt-10 w-full max-w-[1600px]">
           <MarketingFooter />
         </div>
       </section>

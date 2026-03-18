@@ -15,7 +15,7 @@ export default async function BlogPage() {
 
   return (
     <main className="min-h-screen px-4 py-8">
-      <section className="mx-auto w-full max-w-6xl">
+      <section className="mx-auto w-full max-w-[1600px]">
         <MarketingHeader />
         <div className="mb-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -50,7 +50,7 @@ export default async function BlogPage() {
                 <span>{post.source === 'community' ? 'Community post' : 'Editorial'}</span>
               </div>
               <h2 className="mt-4 text-3xl font-semibold text-slate-900 dark:text-white">{post.title}</h2>
-              <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-700 dark:text-slate-300 md:text-base">{post.description}</p>
+              <p className="mt-3 max-w-5xl text-sm leading-7 text-slate-700 dark:text-slate-300 md:text-base">{post.description}</p>
               <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-300 md:text-base">
                 {post.sections[0]?.paragraphs[0]}
               </p>

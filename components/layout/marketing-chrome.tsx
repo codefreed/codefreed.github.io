@@ -11,7 +11,7 @@ const primaryLinkClass =
 
 export function MarketingHeader() {
   return (
-    <header className="mx-auto mb-8 flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-white/60 bg-white/70 px-4 py-3 shadow-[0_18px_40px_rgba(99,119,154,0.14)] backdrop-blur-xl">
+    <header className="mx-auto mb-8 flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-white/60 bg-white/70 px-4 py-3 shadow-[0_18px_40px_rgba(99,119,154,0.14)] backdrop-blur-xl">
       <Link href="/" className="rounded-full px-1 py-1">
         <CodeFreedLogo compact />
       </Link>
@@ -51,7 +51,7 @@ export function MarketingHeader() {
 
 export function MarketingFooter() {
   return (
-    <footer className="mx-auto mt-10 flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-white/20 pt-6 text-sm text-slate-600 dark:text-slate-300">
+    <footer className="mx-auto mt-10 flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-3 border-t border-white/20 pt-6 text-sm text-slate-600 dark:text-slate-300">
       <CodeFreedLogo compact />
       <div className="flex flex-wrap gap-4">
         <Link href="/ai">AI</Link>

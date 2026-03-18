@@ -41,7 +41,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   return (
     <main className="min-h-screen px-4 py-8">
-      <article className="mx-auto w-full max-w-4xl">
+      <article className="mx-auto w-full max-w-[1600px]">
         <MarketingHeader />
         <header className="glass rounded-[2rem] p-6 md:p-8">
           <div className="flex flex-wrap items-center gap-3 text-xs font-medium uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-300">
