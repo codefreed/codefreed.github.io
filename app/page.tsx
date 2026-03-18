@@ -128,7 +128,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <section className="mx-auto grid w-full max-w-[1600px] items-start gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+      <section id="top" className="mx-auto grid w-full max-w-[1600px] items-start gap-8 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6 animate-fadeInUp">
           <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-4 py-2 text-xs text-cyan-600 dark:text-cyan-300">
             <Wand2 className="h-4 w-4" />
@@ -141,7 +141,8 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/app" className={primaryLinkLargeClass}>Start building free</Link>
-            <Link href="/features" className={secondaryLinkLargeClass}>See how it works</Link>
+            <Link href="#how-it-works" className={secondaryLinkLargeClass}>See how it works</Link>
+            <Link href="#what-it-does" className={secondaryLinkLargeClass}>Explore features</Link>
           </div>
           <div className="grid gap-3 pt-4 sm:grid-cols-3">
             <div className="glass rounded-2xl p-4 animate-drift">
@@ -168,34 +169,36 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <GlassPanel className="animate-drift animate-delay-1" variant="card">
-          <div className="space-y-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-cyan-500">How it works</p>
-              <LayoutTemplate className="h-5 w-5 text-cyan-500" />
+        <section id="how-it-works" className="scroll-mt-28">
+          <GlassPanel className="animate-drift animate-delay-1" variant="card">
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-cyan-500">How it works</p>
+                <LayoutTemplate className="h-5 w-5 text-cyan-500" />
+              </div>
+              <div className="space-y-3">
+                {workflowSteps.map((step, index) => (
+                <div key={step} className="glass rounded-2xl p-4 animate-drift">
+                    <p className="text-xs text-cyan-500">Step {index + 1}</p>
+                    <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{step}</p>
+                    <p className="mt-2 text-xs leading-6 text-slate-600 dark:text-slate-400">
+                      {index === 0
+                        ? 'The builder is designed to understand natural prompts, so you can write like a person instead of memorizing command syntax.'
+                        : index === 1
+                          ? 'The generated project includes real files and sections, which gives you something concrete to review immediately.'
+                          : index === 2
+                            ? 'You can stay visual in preview or switch into IDE mode when you want deeper control over the structure.'
+                            : 'Once the project is where you want it, you can keep it in CodeFreed or move it into your own workflow.'}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-3">
-              {workflowSteps.map((step, index) => (
-              <div key={step} className="glass rounded-2xl p-4 animate-drift">
-                  <p className="text-xs text-cyan-500">Step {index + 1}</p>
-                  <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{step}</p>
-                  <p className="mt-2 text-xs leading-6 text-slate-600 dark:text-slate-400">
-                    {index === 0
-                      ? 'The builder is designed to understand natural prompts, so you can write like a person instead of memorizing command syntax.'
-                      : index === 1
-                        ? 'The generated project includes real files and sections, which gives you something concrete to review immediately.'
-                        : index === 2
-                          ? 'You can stay visual in preview or switch into IDE mode when you want deeper control over the structure.'
-                          : 'Once the project is where you want it, you can keep it in CodeFreed or move it into your own workflow.'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </GlassPanel>
+          </GlassPanel>
+        </section>
       </section>
 
-      <section className="mx-auto mt-8 w-full max-w-[1600px] animate-fadeInUp animate-delay-1">
+      <section id="what-it-does" className="mx-auto mt-8 w-full max-w-[1600px] animate-fadeInUp animate-delay-1 scroll-mt-28">
         <div className="mb-6 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-3xl font-semibold text-slate-900 dark:text-white">What it does</h2>
@@ -214,7 +217,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto mt-8 grid w-full max-w-[1600px] gap-4 lg:grid-cols-[1.1fr_0.9fr] animate-fadeInUp animate-delay-2">
+      <section id="use-cases" className="mx-auto mt-8 grid w-full max-w-[1600px] gap-4 lg:grid-cols-[1.1fr_0.9fr] animate-fadeInUp animate-delay-2 scroll-mt-28">
         <GlassPanel className="animate-drift">
           <h2 className="text-3xl font-semibold text-slate-900 dark:text-white">What people build with it</h2>
           <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-300">

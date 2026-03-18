@@ -134,6 +134,72 @@ export default function Script({ strategy, ...props }: ScriptProps) {
 }
 `;
 
+const previewNavigationShim = `export function useRouter() {
+  return {
+    push: (href) => {
+      if (typeof window !== 'undefined') {
+        window.location.hash = String(href ?? '');
+      }
+    },
+    replace: (href) => {
+      if (typeof window !== 'undefined') {
+        window.location.hash = String(href ?? '');
+      }
+    },
+    back: () => {
+      if (typeof window !== 'undefined') {
+        window.history.back();
+      }
+    },
+    refresh: () => {
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
+    }
+  };
+}
+
+export function usePathname() {
+  if (typeof window === 'undefined') return '/';
+  return window.location.pathname || '/';
+}
+
+export function useSearchParams() {
+  if (typeof window === 'undefined') return new URLSearchParams();
+  return new URLSearchParams(window.location.search);
+}
+
+export function redirect(href) {
+  if (typeof window !== 'undefined') {
+    window.location.hash = String(href ?? '');
+  }
+}
+`;
+
+const previewHeadShim = `import React from 'react';
+
+export default function Head({ children }) {
+  return <>{children}</>;
+}
+`;
+
+const previewFontShim = `export function Inter() {
+  return { className: '', variable: '' };
+}
+
+export function Geist() {
+  return { className: '', variable: '' };
+}
+
+export function Geist_Mono() {
+  return { className: '', variable: '' };
+}
+
+export default function createFont() {
+  return { className: '', variable: '' };
+}
+`;
+
 const previewCnShim = `export function cn(...inputs) {
   return inputs.filter(Boolean).join(' ');
 }
@@ -183,6 +249,25 @@ export function ThemeToggle() {
   );
 }
 `;
+
+const PREVIEW_DEPENDENCIES = {
+  '@radix-ui/react-dialog': '^1.1.4',
+  '@radix-ui/react-tabs': '^1.1.2',
+  '@radix-ui/react-toast': '^1.2.4',
+  'class-variance-authority': '^0.7.1',
+  clsx: '^2.1.1',
+  firebase: '^11.1.0',
+  'framer-motion': '^12.4.7',
+  jszip: '^3.10.1',
+  'lucide-react': '^0.468.0',
+  react: '^18.2.0',
+  'react-dom': '^18.2.0',
+  sonner: '^1.7.1',
+  'tailwind-merge': '^2.6.0',
+  uuid: '^11.0.5',
+  zod: '^3.24.1',
+  zustand: '^5.0.2'
+} as const;
 
 function ensureRelativeImport(value: string) {
   return value.startsWith('.') ? value : `./${value}`;
@@ -237,8 +322,30 @@ function rewritePreviewImports(sourcePath: string, content: string, knownFiles: 
   const linkShimPath = resolveAliasTarget('lib/preview/next-link', sourcePath, '/lib/preview/next-link.tsx');
   const imageShimPath = resolveAliasTarget('lib/preview/next-image', sourcePath, '/lib/preview/next-image.tsx');
   const scriptShimPath = resolveAliasTarget('lib/preview/next-script', sourcePath, '/lib/preview/next-script.tsx');
+  const navigationShimPath = resolveAliasTarget('lib/preview/next-navigation', sourcePath, '/lib/preview/next-navigation.ts');
+  const headShimPath = resolveAliasTarget('lib/preview/next-head', sourcePath, '/lib/preview/next-head.tsx');
+  const fontShimPath = resolveAliasTarget('lib/preview/next-font', sourcePath, '/lib/preview/next-font.ts');
 
   return content
+    .replace(/import\s+['"]@\/([^'"]+)['"]/g, (_match, importPath: string) => {
+      const candidates = [
+        importPath,
+        `${importPath}.ts`,
+        `${importPath}.tsx`,
+        `${importPath}.js`,
+        `${importPath}.jsx`,
+        `${importPath}.css`,
+        joinPath(importPath, 'index.ts'),
+        joinPath(importPath, 'index.tsx'),
+        joinPath(importPath, 'index.js'),
+        joinPath(importPath, 'index.jsx')
+      ];
+      const target = candidates.find((candidate) => knownFiles.has(candidate));
+      if (!target) {
+        return `import '@/${importPath}'`;
+      }
+      return `import '${resolveAliasTarget(importPath, sourcePath, `/${target}`)}'`;
+    })
     .replace(/from\s+['"]@\/([^'"]+)['"]/g, (_match, importPath: string) => {
       const candidates = [
         importPath,
@@ -260,7 +367,10 @@ function rewritePreviewImports(sourcePath: string, content: string, knownFiles: 
     })
     .replace(/from\s+['"]next\/link['"]/g, `from '${linkShimPath}'`)
     .replace(/from\s+['"]next\/image['"]/g, `from '${imageShimPath}'`)
-    .replace(/from\s+['"]next\/script['"]/g, `from '${scriptShimPath}'`);
+    .replace(/from\s+['"]next\/script['"]/g, `from '${scriptShimPath}'`)
+    .replace(/from\s+['"]next\/navigation['"]/g, `from '${navigationShimPath}'`)
+    .replace(/from\s+['"]next\/head['"]/g, `from '${headShimPath}'`)
+    .replace(/from\s+['"]next\/font\/(?:google|local)['"]/g, `from '${fontShimPath}'`);
 }
 
 function sanitizePreviewCss(content: string) {
@@ -344,6 +454,15 @@ createRoot(document.getElementById('root')).render(<App />);
     '/lib/preview/next-script.tsx': {
       code: previewScriptShim
     },
+    '/lib/preview/next-navigation.ts': {
+      code: previewNavigationShim
+    },
+    '/lib/preview/next-head.tsx': {
+      code: previewHeadShim
+    },
+    '/lib/preview/next-font.ts': {
+      code: previewFontShim
+    },
     '/lib/utils/cn.ts': {
       code: previewCnShim
     },
@@ -355,6 +474,9 @@ createRoot(document.getElementById('root')).render(<App />);
     },
     '/components/ui/theme-toggle.tsx': {
       code: previewThemeToggleShim
+    },
+    '/app/globals.css': {
+      code: sanitizePreviewCss(files['app/globals.css'] ?? fallbackStyles) || fallbackStyles
     },
     '/app/page.tsx': {
       code:
@@ -566,11 +688,7 @@ export function PreviewPanel({
                   files={sandpackFiles}
                   customSetup={{
                     entry: '/index.tsx',
-                    dependencies: {
-                      'lucide-react': '^0.468.0',
-                      react: '^18.2.0',
-                      'react-dom': '^18.2.0'
-                    }
+                    dependencies: PREVIEW_DEPENDENCIES
                   }}
                 >
               <SandpackPreview
@@ -763,11 +881,7 @@ export function PreviewPanel({
                         }}
                         customSetup={{
                           entry: '/index.tsx',
-                          dependencies: {
-                            'lucide-react': '^0.468.0',
-                            react: '^18.2.0',
-                            'react-dom': '^18.2.0'
-                          }
+                          dependencies: PREVIEW_DEPENDENCIES
                         }}
                       />
                     </div>

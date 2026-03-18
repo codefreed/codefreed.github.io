@@ -13,6 +13,11 @@
   --muted-fg: 218 18% 42%;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+}
+
 .dark {
   --bg-0: 219 53% 9%;
   --bg-1: 223 38% 16%;
