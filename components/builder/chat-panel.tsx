@@ -15,6 +15,8 @@ const AI_TIMEOUT_MS = 285_000;
 const AI_TIMEOUT_SECONDS = Math.round(AI_TIMEOUT_MS / 1000);
 const MAX_TEXT_ATTACHMENT_CHARS = 8_000;
 const MAX_TOTAL_ATTACHMENT_CHARS = 16_000;
+const MAX_FILE_CONTEXT_CHARS = 6_000;
+const MAX_IMAGE_FILE_BYTES = 1_500_000;
 const WORKING_STEPS = [
   'Reviewing your request',
   'Scanning the current project files',
@@ -35,6 +37,40 @@ function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 102.4) / 10} KB`;
   return `${Math.round(bytes / 104857.6) / 10} MB`;
+}
+
+function sanitizeFilesForAi(files: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(files).map(([filePath, content]) => {
+      if (content.length <= MAX_FILE_CONTEXT_CHARS) {
+        return [filePath, content];
+      }
+
+      return [
+        filePath,
+        `/* File content omitted for size. Path: ${filePath}. This file exists in the project and may contain uploaded assets or large content. Preserve the path and reference it if needed. */`
+      ];
+    })
+  );
+}
+
+function toBase64(bytes: Uint8Array) {
+  let binary = '';
+  const chunkSize = 0x8000;
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+
+  return btoa(binary);
+}
+
+function makeSafeStem(fileName: string) {
+  return fileName
+    .replace(/\.[^.]+$/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'upload';
 }
 
 async function runAi(params: {
@@ -72,7 +108,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
   const [attachments, setAttachments] = useState<Array<{ name: string; content: string }>>([]);
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { files, messages, versions, addUserMessage, applyAiResponse, rollbackVersion, setSaving, markSaved } =
+  const { files, messages, versions, addUserMessage, applyAiResponse, rollbackVersion, setSaving, markSaved, upsertFiles } =
     useBuilderStore();
   const selectedModel = useBuilderStore((state) => state.selectedModel);
 
@@ -116,7 +152,7 @@ export function ChatPanel({ projectId }: { projectId: string }) {
       const ai = await runAi({
         instruction: baseInstruction || 'Use the attached files as reference and decide the best direction for the site.',
         model: selectedModel,
-        files,
+        files: sanitizeFilesForAi(files),
         attachments,
         errorContext
       });
@@ -159,16 +195,37 @@ export function ChatPanel({ projectId }: { projectId: string }) {
       let totalChars = attachments.reduce((sum, file) => sum + file.content.length, 0);
       let imageCount = 0;
       let truncatedCount = 0;
+      let skippedLargeImages = 0;
+      const nextProjectFiles: Record<string, string> = {};
 
       const nextAttachments = await Promise.all(
-        Array.from(selectedFiles).map(async (file) => {
+        Array.from(selectedFiles).map(async (file, index) => {
           const isImage = file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg');
 
           if (isImage) {
+            if (file.size > MAX_IMAGE_FILE_BYTES) {
+              skippedLargeImages += 1;
+              return {
+                name: file.name,
+                content: `Image reference attached: ${file.name} was skipped as an embeddable asset because it is too large (${formatBytes(file.size)}).`
+              };
+            }
+
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            const dataUrl = `data:${file.type || 'image/png'};base64,${toBase64(bytes)}`;
+            const assetFilePath = `app/uploads/${makeSafeStem(file.name)}-${Date.now()}-${index}.ts`;
+            nextProjectFiles[assetFilePath] =
+              `const uploadedImage = ${JSON.stringify(dataUrl)};\n` +
+              `export default uploadedImage;\n` +
+              `export const uploadedImageName = ${JSON.stringify(file.name)};\n`;
+
             imageCount += 1;
             return {
               name: file.name,
-              content: `Image reference attached: ${file.name} (${file.type || 'image'}, ${formatBytes(file.size)}). Use this only as a visual reference note; binary image data is not included in the text prompt.`
+              content:
+                `Uploaded image ready to use: ${file.name} (${file.type || 'image'}, ${formatBytes(file.size)}). ` +
+                `From app/page.tsx, import it with ${JSON.stringify(`import uploadedImage from './uploads/${assetFilePath.split('/').pop()?.replace(/\.ts$/, '')}';`)} ` +
+                `and render it with <img src={uploadedImage} alt=${JSON.stringify(file.name)} />.`
             };
           }
 
@@ -191,13 +248,19 @@ export function ChatPanel({ projectId }: { projectId: string }) {
         })
       );
 
+      if (Object.keys(nextProjectFiles).length) {
+        upsertFiles(nextProjectFiles);
+      }
       setAttachments((current) => [...current, ...nextAttachments]);
       toast.success(`${nextAttachments.length} file${nextAttachments.length > 1 ? 's' : ''} attached for AI context`);
       if (imageCount) {
-        toast.message(`${imageCount} image file${imageCount === 1 ? '' : 's'} attached as lightweight reference notes`);
+        toast.message(`${imageCount} image file${imageCount === 1 ? '' : 's'} added to the project as usable assets`);
       }
       if (truncatedCount) {
         toast.message(`${truncatedCount} file${truncatedCount === 1 ? '' : 's'} trimmed to keep the AI request under token limits`);
+      }
+      if (skippedLargeImages) {
+        toast.error(`${skippedLargeImages} image file${skippedLargeImages === 1 ? '' : 's'} was too large to embed directly`);
       }
     } catch {
       toast.error('Could not read one or more files');

@@ -83,9 +83,25 @@ type LinkProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   href: string;
 };
 
-export default function Link({ href, children, ...props }: LinkProps) {
+function normalizeHref(href: string) {
+  if (!href) return '/';
+  return href.startsWith('/') ? href : \`/\${href.replace(/^#/, '')}\`;
+}
+
+export default function Link({ href, children, onClick, ...props }: LinkProps) {
   return (
-    <a href={href} {...props}>
+    <a
+      href={href}
+      {...props}
+      onClick={(event) => {
+        onClick?.(event);
+        if (event.defaultPrevented) return;
+        if (!href || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+        if (href.startsWith('#')) return;
+        event.preventDefault();
+        window.location.hash = normalizeHref(href);
+      }}
+    >
       {children}
     </a>
   );
@@ -134,16 +150,22 @@ export default function Script({ strategy, ...props }: ScriptProps) {
 }
 `;
 
-const previewNavigationShim = `export function useRouter() {
+const previewNavigationShim = `function currentPreviewPath() {
+  if (typeof window === 'undefined') return '/';
+  const raw = window.location.hash.replace(/^#/, '') || '/';
+  return raw.startsWith('/') ? raw : \`/\${raw}\`;
+}
+
+export function useRouter() {
   return {
     push: (href) => {
       if (typeof window !== 'undefined') {
-        window.location.hash = String(href ?? '');
+        window.location.hash = String(href ?? '/');
       }
     },
     replace: (href) => {
       if (typeof window !== 'undefined') {
-        window.location.hash = String(href ?? '');
+        window.location.hash = String(href ?? '/');
       }
     },
     back: () => {
@@ -160,8 +182,7 @@ const previewNavigationShim = `export function useRouter() {
 }
 
 export function usePathname() {
-  if (typeof window === 'undefined') return '/';
-  return window.location.pathname || '/';
+  return currentPreviewPath();
 }
 
 export function useSearchParams() {
@@ -171,7 +192,7 @@ export function useSearchParams() {
 
 export function redirect(href) {
   if (typeof window !== 'undefined') {
-    window.location.hash = String(href ?? '');
+    window.location.hash = String(href ?? '/');
   }
 }
 `;
@@ -420,14 +441,60 @@ function detectPreviewIssues(files: FileTree) {
   };
 }
 
-function mapFilesForSandpack(files: FileTree): SandpackFiles {
-  const knownFiles = new Set(Object.keys(files));
-  const wrappedAppCode = `import Page from './app/page';
+function createPreviewAppCode(files: FileTree) {
+  const routeEntries = Object.keys(files)
+    .filter((filePath) => filePath.startsWith('app/') && filePath.endsWith('/page.tsx') && !filePath.includes('/api/') && !/\[[^/]+\]/.test(filePath))
+    .map((filePath) => {
+      const routePath =
+        filePath === 'app/page.tsx'
+          ? '/'
+          : `/${filePath.replace(/^app\//, '').replace(/\/page\.tsx$/, '')}`;
+      const importPath = `.${filePath === 'app/page.tsx' ? '/app/page' : `/${filePath.replace(/\.tsx$/, '')}`}`;
+      const importName = `Route${Math.abs(
+        filePath.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)
+      )}`;
+
+      return { filePath, routePath, importPath, importName };
+    })
+    .sort((left, right) => left.routePath.localeCompare(right.routePath));
+
+  const imports = routeEntries.map((entry) => `import ${entry.importName} from '${entry.importPath}';`).join('\n');
+  const cases = routeEntries
+    .map((entry) => `  '${entry.routePath}': ${entry.importName},`)
+    .join('\n');
+
+  return `import React from 'react';
+${imports}
+
+const routes = {
+${cases}
+};
+
+function currentPath() {
+  if (typeof window === 'undefined') return '/';
+  const raw = window.location.hash.replace(/^#/, '') || '/';
+  return raw.startsWith('/') ? raw : \`/\${raw}\`;
+}
 
 export default function App() {
-  return <Page />;
+  const [path, setPath] = React.useState(currentPath);
+
+  React.useEffect(() => {
+    const sync = () => setPath(currentPath());
+    window.addEventListener('hashchange', sync);
+    sync();
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
+
+  const ActivePage = routes[path] ?? routes['/'];
+  return <ActivePage />;
 }
 `;
+}
+
+function mapFilesForSandpack(files: FileTree): SandpackFiles {
+  const knownFiles = new Set(Object.keys(files));
+  const wrappedAppCode = createPreviewAppCode(files);
 
   const sandpackFiles: SandpackFiles = {
     '/index.tsx': {

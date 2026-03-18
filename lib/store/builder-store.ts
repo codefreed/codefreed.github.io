@@ -17,6 +17,7 @@ interface BuilderState {
   setProjectName: (name: string) => void;
   setSelectedModel: (model: AiModel) => void;
   updateFileContent: (filePath: string, content: string) => void;
+  upsertFiles: (nextFiles: FileTree) => void;
   replaceProjectContents: (params: {
     projectName?: string;
     files: FileTree;
@@ -280,6 +281,15 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
       files: {
         ...state.files,
         [filePath]: content
+      },
+      lastSavedAt: undefined
+    }));
+  },
+  upsertFiles: (nextFiles) => {
+    set((state) => ({
+      files: {
+        ...state.files,
+        ...nextFiles
       },
       lastSavedAt: undefined
     }));
