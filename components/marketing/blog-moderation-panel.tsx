@@ -59,13 +59,13 @@ export function BlogModerationPanel() {
 
   const moderate = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      const response = await fetch(`/api/blog-submissions/${id}`, {
+      const response = await fetch('/api/blog-submissions/moderate', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'x-moderation-token': token
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ id, status })
       });
       const data = await response.json();
       if (!response.ok) {

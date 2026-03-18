@@ -4,8 +4,6 @@ import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-
 import { getAllBlogPosts } from '@/lib/content/blog';
 import { buildPageMetadata } from '@/lib/site-config';
 
-export const dynamic = 'force-dynamic';
-
 export const metadata: Metadata = buildPageMetadata({
   title: 'Blog | CodeFreed',
   description: 'Read articles from CodeFreed and submit your own article for review on AI website builders, no-code tools, and web development.',

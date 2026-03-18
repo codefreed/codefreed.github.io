@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { updateSubmissionStatus } from '@/lib/content/blog';
 
 const moderationSchema = z.object({
+  id: z.string().min(1, 'Submission id is required.'),
   status: z.enum(['pending', 'approved', 'rejected']),
   reviewNotes: z.string().max(400).optional()
 });
@@ -17,7 +18,7 @@ function hasValidToken(request: Request) {
   return token === expected;
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request) {
   if (!hasValidToken(request)) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
@@ -25,7 +26,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   try {
     const raw = await request.json();
     const parsed = moderationSchema.parse(raw);
-    const submission = await updateSubmissionStatus(params.id, parsed);
+    const submission = await updateSubmissionStatus(parsed.id, parsed);
 
     return NextResponse.json({ submission });
   } catch (error) {

@@ -4,8 +4,6 @@ import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-
 import { editorialBlogPosts, getBlogPost } from '@/lib/content/blog';
 import { buildPageMetadata } from '@/lib/site-config';
 
-export const dynamic = 'force-dynamic';
-
 type BlogPostPageProps = {
   params: {
     slug: string;
