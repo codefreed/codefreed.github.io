@@ -13,6 +13,8 @@ import { IS_STATIC_EXPORT } from '@/lib/runtime';
 
 const AI_TIMEOUT_MS = 285_000;
 const AI_TIMEOUT_SECONDS = Math.round(AI_TIMEOUT_MS / 1000);
+const MAX_TEXT_ATTACHMENT_CHARS = 8_000;
+const MAX_TOTAL_ATTACHMENT_CHARS = 16_000;
 const WORKING_STEPS = [
   'Reviewing your request',
   'Scanning the current project files',
@@ -27,6 +29,12 @@ function parseErrorMessage(text: string) {
   } catch {
     return text;
   }
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 102.4) / 10} KB`;
+  return `${Math.round(bytes / 104857.6) / 10} MB`;
 }
 
 async function runAi(params: {
@@ -148,15 +156,49 @@ export function ChatPanel({ projectId }: { projectId: string }) {
     }
 
     try {
+      let totalChars = attachments.reduce((sum, file) => sum + file.content.length, 0);
+      let imageCount = 0;
+      let truncatedCount = 0;
+
       const nextAttachments = await Promise.all(
-        Array.from(selectedFiles).map(async (file) => ({
-          name: file.name,
-          content: (await file.text()).slice(0, 40_000)
-        }))
+        Array.from(selectedFiles).map(async (file) => {
+          const isImage = file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg');
+
+          if (isImage) {
+            imageCount += 1;
+            return {
+              name: file.name,
+              content: `Image reference attached: ${file.name} (${file.type || 'image'}, ${formatBytes(file.size)}). Use this only as a visual reference note; binary image data is not included in the text prompt.`
+            };
+          }
+
+          const rawText = await file.text();
+          const remainingBudget = Math.max(0, MAX_TOTAL_ATTACHMENT_CHARS - totalChars);
+          const nextLimit = Math.min(MAX_TEXT_ATTACHMENT_CHARS, remainingBudget);
+          const sliced = rawText.slice(0, nextLimit);
+
+          if (rawText.length > sliced.length) {
+            truncatedCount += 1;
+          }
+
+          totalChars += sliced.length;
+
+          return {
+            name: file.name,
+            content:
+              sliced || `[File attached: ${file.name}. The file was too large for the current prompt budget, so only metadata was included.]`
+          };
+        })
       );
 
       setAttachments((current) => [...current, ...nextAttachments]);
       toast.success(`${nextAttachments.length} file${nextAttachments.length > 1 ? 's' : ''} attached for AI context`);
+      if (imageCount) {
+        toast.message(`${imageCount} image file${imageCount === 1 ? '' : 's'} attached as lightweight reference notes`);
+      }
+      if (truncatedCount) {
+        toast.message(`${truncatedCount} file${truncatedCount === 1 ? '' : 's'} trimmed to keep the AI request under token limits`);
+      }
     } catch {
       toast.error('Could not read one or more files');
     }

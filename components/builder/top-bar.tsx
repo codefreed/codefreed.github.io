@@ -1,14 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
 import { Undo2, Redo2, Download, FolderUp, Rocket, Save } from 'lucide-react';
-import { ScrollToggle, applyScrollMode } from '@/components/marketing/scroll-toggle';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useBuilderStore } from '@/lib/store/builder-store';
-
-const BUILDER_SCROLL_STORAGE_KEY = 'codefreed-builder-scroll-mode';
 
 export function TopBar({
   onImport,
@@ -22,11 +18,6 @@ export function TopBar({
   onSave: () => Promise<void>;
 }) {
   const { projectName, setProjectName, isSaving, lastSavedAt } = useBuilderStore();
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem(BUILDER_SCROLL_STORAGE_KEY);
-    applyScrollMode(saved ? saved === 'smooth' : false);
-  }, []);
 
   return (
     <header className="glass noise-overlay flex min-w-0 items-center gap-3 rounded-3xl p-2.5">
@@ -65,9 +56,6 @@ export function TopBar({
         <Button variant="ghost" size="sm" onClick={onSave} disabled={isSaving} title="Save">
           <Save className="h-4 w-4" />
         </Button>
-        <div className="shrink-0">
-          <ScrollToggle storageKey={BUILDER_SCROLL_STORAGE_KEY} />
-        </div>
         <div className="shrink-0">
           <ThemeToggle />
         </div>
