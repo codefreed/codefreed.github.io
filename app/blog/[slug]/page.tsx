@@ -1,7 +1,8 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { MarketingFooter, MarketingHeader } from '@/components/layout/marketing-chrome';
-import { editorialBlogPosts, getBlogPost } from '@/lib/content/blog';
+import { editorialBlogPosts, estimateReadingTime, getBlogPost } from '@/lib/content/blog';
 import { buildPageMetadata } from '@/lib/site-config';
 
 type BlogPostPageProps = {
@@ -39,6 +40,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
+  const readingTime = estimateReadingTime(post);
+
+  const relatedLinks = [
+    { href: '/features', label: 'Explore all features' },
+    { href: '/blog', label: 'Read more articles' },
+    { href: '/app', label: 'Try the builder free' },
+  ];
+
   return (
     <main className="min-h-screen px-4 py-8">
       <article className="mx-auto w-full max-w-[1600px]">
@@ -47,9 +56,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           <div className="flex flex-wrap items-center gap-3 text-xs font-medium uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-300">
             <span>{post.category}</span>
             <span className="text-slate-400">•</span>
-            <span>{post.publishedAt}</span>
+            <time dateTime={post.publishedAt}>{post.publishedAt}</time>
             <span className="text-slate-400">•</span>
             <span>{post.author}</span>
+            <span className="text-slate-400">•</span>
+            <span>{readingTime} min read</span>
             <span className="text-slate-400">•</span>
             <span>{post.source === 'community' ? 'Community post' : 'Editorial'}</span>
           </div>
@@ -71,6 +82,23 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </section>
           ))}
         </div>
+
+        <div className="mt-6 glass rounded-3xl p-6 md:p-8">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Continue reading</h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">More from the CodeFreed blog and product.</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {relatedLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="clean-surface inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-medium text-slate-800 transition-all hover:-translate-y-0.5 dark:text-white"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
         <MarketingFooter />
       </article>
     </main>
